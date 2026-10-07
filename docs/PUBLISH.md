@@ -106,14 +106,13 @@ export JAVA_HOME=/path/to/jdk-17 ANDROID_HOME=/path/to/android-sdk
 bash android/build.sh
 ```
 
-### 注意：CI 出的 APK 是"联网版"
+### 关于 APK 体积（appassets/ 已随仓库提供）
 
-`.github/workflows/android.yml` 从**仓库里的 `android/` 源码**构建，因此没有离线预装资源
-（本地构建会把 `appassets/` 打进 `assets/bundle/`，约 5 MB；仓库不含该目录）。两者区别：
+`appassets/`（离线预装资源，约 13 MB）已随仓库提供，因此 **CI 与本地产出的都是完整版**（约 5.4 MB）。
 
 | 构建方式 | 体积 | 行为 |
 |---|---|---|
-| CI（仓库源码） | ~60 KB | 打开后**联网加载**页面 |
-| 本地 `build.ps1`（带 `appassets/`） | ~5.4 MB | 首屏用预装资源，离线也能起 |
+| CI（仓库源码 + appassets/） | ~5.4 MB | 首屏用**预装资源**，离线也能起 |
+| 本地 `build.ps1` | ~5.4 MB | 同上 |
 
-要用完整的预装版，本地构建即可；或把 `appassets/` 一并提交（会让仓库增大约 5 MB）。
+预装资源变更时重新生成并提交 `appassets/` 即可。

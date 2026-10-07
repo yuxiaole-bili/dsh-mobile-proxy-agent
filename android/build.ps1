@@ -45,7 +45,7 @@ Write-Host "=== 4) aapt2 link -> base.apk ==="
 if ($LASTEXITCODE -ne 0) { throw "aapt2 link failed" }
 
 Write-Host "=== 5) 把 classes.dex + 预装资源打进 apk（Python zipfile，避免依赖 zip 工具）==="
-$ASSETS = if ($env:DSH_ASSETS) { $env:DSH_ASSETS } else { Join-Path $SRC "appassets" }
+$ASSETS = if ($env:DSH_ASSETS) { $env:DSH_ASSETS } else { Join-Path (Split-Path $SRC -Parent) "appassets" }
 $py = @'
 import sys, zipfile, shutil, os
 base, dex, out, assets = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]

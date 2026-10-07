@@ -1,8 +1,8 @@
 DSH Mobile Proxy Agent -- 开源库文件清单
 作者: yuxiaole_awa  https://github.com/yuxiaole-bili
 仓库: https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent
-更新时间: 2026-10-08 00:44:55
-文件数: 115   总大小: 1.13 MB
+更新时间: 2026-10-08 01:05:02
+文件数: 127   总大小: 14.28 MB
 SIZE        MD5(10)     PATH
 ------------------------------------------------------------------------
        110  0b9c616b80  .gitattributes
@@ -10,12 +10,13 @@ SIZE        MD5(10)     PATH
       1694  303bc735fd  CHANGELOG.md
       1104  30bc3f2a0d  LICENSE
      18998  6feb417481  README.md
-      2342  5cc3cbf52a  .github/workflows/android.yml
+      2628  f42e190f16  .github/workflows/android.yml
       1804  ac7175c45f  .github/workflows/release.yml
       1375  8b75cb89f1  .github/workflows/secret-scan.yml
       1730  e6db11f78b  android/AndroidManifest.xml
-      3879  576c51406d  android/build.ps1
+      4731  231aee22ef  android/build.ps1
       4681  c2ce865fc1  android/build.sh
+      2666  c201e82df2  android/debug.keystore
     139998  0e90eadd5c  android/java/ai/deepseek/dsh/mobile/MainActivity.java
        884  78edc13aba  android/res/mipmap-hdpi/ic_launcher.png
        884  78edc13aba  android/res/mipmap-mdpi/ic_launcher.png
@@ -23,10 +24,21 @@ SIZE        MD5(10)     PATH
        884  78edc13aba  android/res/mipmap-xxhdpi/ic_launcher.png
        884  78edc13aba  android/res/mipmap-xxxhdpi/ic_launcher.png
        105  c9338fc338  android/res/values/strings.xml
+       926  050e87f958  appassets/2a8f6052fe85746e.alert
+        50  2f1510d9cb  appassets/37c135e5e237c107.openi
+  10614322  aad46886cf  appassets/51739d49980ae6b6.plugi
+     38109  104d70b252  appassets/64c3b26bbb2dadaa.plugi
+     29288  f209250a7f  appassets/75a27e60fa8b7cd1.css
+     76338  37c9e16da9  appassets/7650b51cf8444db9.css
+   1333865  3f7565de4d  appassets/87638179e082b0db.plugi
+        22  bc1c0e5ce3  appassets/b0604e883de51e46.alert
+    886207  04d7f8d43b  appassets/ca2793f472fcb86c.js
+    801934  fc1b058ddc  appassets/fc4b02af2b8f2500.js
+      4257  5aee55e4b3  appassets/index.json
       5599  cffda93ca2  docs/ARCHITECTURE.md
       3098  21810010de  docs/PENTEST.md
      12223  33c7380d99  docs/PLUGIN.md
-      4111  dcec4f97c4  docs/PUBLISH.md
+      4559  59985f7bbd  docs/PUBLISH.md
       2278  b87dfe3b79  docs/SECURITY.md
       4585  47204488f0  docs/SETUP.md
       2116  9f1bd6751a  docs/USE-IOS.md
