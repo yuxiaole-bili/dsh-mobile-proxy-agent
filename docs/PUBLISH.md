@@ -67,3 +67,53 @@ git push origin v0.2.0
 - 标签形如 `v0.2.0` → 正常 Release；带 `alpha`/`beta`/`rc` → 自动标为 **pre-release**
 - 抽取规则：取 `CHANGELOG.md` 里与标签同名的 `## <版本>` 段（如 `## 0.2.0 (2026-10-07)`）
 - 工作流文件：`.github/workflows/release.yml`（也可在 Actions 页面手动触发并指定已存在的标签）
+
+## 八、APK 怎么上 Release
+
+打标签时 `.github/workflows/android.yml` 会构建 APK 并**自动挂到该标签的 Release**：
+
+```bash
+git tag v0.2.1
+git push origin v0.2.1
+```
+
+**给已存在的旧 Release 补挂 APK**（例如 v0.2.0 当时没配这个工作流）：
+Actions → `android` → Run workflow → 填标签 `v0.2.0` → 运行。
+
+### 签名
+
+- 默认用**自动生成的 debug keystore**（口令 `android`）签名 —— 能装能用，但**每次构建签名不同**，
+  覆盖安装会失败（需先卸载）。仅适合自用/尝鲜。
+- 想让升级签名一致：把你本地的 keystore 转 base64 存成仓库 Secrets（Settings → Secrets → Actions）：
+
+  ```powershell
+  [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\code\dsh-android\debug.keystore"))
+  ```
+  然后添加 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KS_PASS`、`ANDROID_KEY_PASS`、`ANDROID_KS_ALIAS`
+  四个 Secrets。工作流检测到 `ANDROID_KEYSTORE_BASE64` 就改用你的固定签名。
+
+> ⚠️ keystore 是签名私钥，**只放进 Secrets**，永远不要提交进仓库（`.gitignore` 已排除 `*.keystore`）。
+
+### 本地构建
+
+```powershell
+# Windows（原脚本）
+pwsh -File android\build.ps1
+```
+```bash
+# Linux / macOS / Git-Bash / WSL（与 CI 同一脚本）
+export JAVA_HOME=/path/to/jdk-17 ANDROID_HOME=/path/to/android-sdk
+bash android/build.sh
+```
+
+### 注意：CI 出的 APK 是"联网版"
+
+`.github/workflows/android.yml` 从**仓库里的 `android/` 源码**构建，因此没有离线预装资源
+（本地构建会把 `appassets/` 打进 `assets/bundle/`，约 5 MB；仓库不含该目录）。两者区别：
+
+| 构建方式 | 体积 | 行为 |
+|---|---|---|
+| CI（仓库源码） | ~60 KB | 打开后**联网加载**页面 |
+| 本地 `build.ps1`（带 `appassets/`） | ~5.4 MB | 首屏用预装资源，离线也能起 |
+
+要用完整的预装版，本地构建即可；或把 `appassets/` 一并提交（会让仓库增大约 5 MB）。

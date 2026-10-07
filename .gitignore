@@ -28,3 +28,10 @@ build/
 .idea/
 Thumbs.db
 desktop.ini
+
+# Android 构建产物与签名材料（绝不入库）
+*.keystore
+*.jks
+out/
+android/out/
+*.apk

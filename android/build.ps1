@@ -1,11 +1,14 @@
-# 完全离线构建 DSH WebView APK（不需要 Gradle / 不需要网络）
+﻿# 完全离线构建 DSH WebView APK（不需要 Gradle / 不需要网络）
 $ErrorActionPreference = "Stop"
-$JDK  = "D:\Android\jdk-17.0.2"
-$SDK  = "D:\Android\sdk"
-$BT   = "$SDK\build-tools\34.0.0"
-$AJAR = "$SDK\platforms\android-34\android.jar"
-$SRC  = "D:\code\dsh-android"
-$OUT  = "$SRC\out"
+# 路径默认值可用环境变量覆盖（GitHub Actions: DSH_JDK / DSH_SDK / DSH_SRC / DSH_OUT）
+$SRC  = if ($env:DSH_SRC) { $env:DSH_SRC } else { $PSScriptRoot }
+$JDK  = if ($env:DSH_JDK) { $env:DSH_JDK } elseif ($env:JAVA_HOME) { $env:JAVA_HOME } else { "D:\Android\jdk-17.0.2" }
+$SDK  = if ($env:DSH_SDK) { $env:DSH_SDK } elseif ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { "D:\Android\sdk" }
+$OUT  = if ($env:DSH_OUT) { $env:DSH_OUT } else { Join-Path $SRC "out" }
+$BT   = (Get-ChildItem "$SDK\build-tools" -Directory -EA SilentlyContinue | Sort-Object Name | Select-Object -Last 1).FullName
+if (-not $BT) { throw "find build-tools failed" }
+$AJAR = (Get-ChildItem "$SDK\platforms\android-*\android.jar" -EA SilentlyContinue | Sort-Object FullName | Select-Object -Last 1).FullName
+if (-not $AJAR) { throw "find android.jar failed" }
 
 $env:JAVA_HOME = $JDK
 $env:PATH = "$JDK\bin;$env:PATH"
@@ -42,6 +45,7 @@ Write-Host "=== 4) aapt2 link -> base.apk ==="
 if ($LASTEXITCODE -ne 0) { throw "aapt2 link failed" }
 
 Write-Host "=== 5) 把 classes.dex + 预装资源打进 apk（Python zipfile，避免依赖 zip 工具）==="
+$ASSETS = if ($env:DSH_ASSETS) { $env:DSH_ASSETS } else { Join-Path $SRC "appassets" }
 $py = @'
 import sys, zipfile, shutil, os
 base, dex, out, assets = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
@@ -59,7 +63,7 @@ with zipfile.ZipFile(out, "a", zipfile.ZIP_DEFLATED) as z:
 print("packed classes.dex ->", out)
 '@
 [System.IO.File]::WriteAllText("$OUT\_pack.py", ($py -replace "`r`n","`n"))
-python "$OUT\_pack.py" "$OUT\base.apk" "$OUT\dex\classes.dex" "$OUT\unsigned.apk" "$SRC\appassets"
+python "$OUT\_pack.py" "$OUT\base.apk" "$OUT\dex\classes.dex" "$OUT\unsigned.apk" "$ASSETS"
 if ($LASTEXITCODE -ne 0) { throw "pack failed" }
 
 Write-Host "=== 6) zipalign ==="

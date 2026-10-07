@@ -1,17 +1,21 @@
-DSH Mobile Agent -- 开源库文件清单
+DSH Mobile Proxy Agent -- 开源库文件清单
 作者: yuxiaole_awa  https://github.com/yuxiaole-bili
-更新时间: 2026-10-08 00:38:21
-文件数: 112   总大小: 1.12 MB
+仓库: https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent
+更新时间: 2026-10-08 00:44:55
+文件数: 115   总大小: 1.13 MB
 SIZE        MD5(10)     PATH
 ------------------------------------------------------------------------
-      1804  ac7175c45f  .github/workflows/release.yml
-      1375  8b75cb89f1  .github/workflows/secret-scan.yml
-       299  5eecd15d75  .gitignore
+       110  0b9c616b80  .gitattributes
+       397  5576f0b19a  .gitignore
       1694  303bc735fd  CHANGELOG.md
       1104  30bc3f2a0d  LICENSE
      18998  6feb417481  README.md
+      2342  5cc3cbf52a  .github/workflows/android.yml
+      1804  ac7175c45f  .github/workflows/release.yml
+      1375  8b75cb89f1  .github/workflows/secret-scan.yml
       1730  e6db11f78b  android/AndroidManifest.xml
       3879  576c51406d  android/build.ps1
+      4681  c2ce865fc1  android/build.sh
     139998  0e90eadd5c  android/java/ai/deepseek/dsh/mobile/MainActivity.java
        884  78edc13aba  android/res/mipmap-hdpi/ic_launcher.png
        884  78edc13aba  android/res/mipmap-mdpi/ic_launcher.png
@@ -22,7 +26,7 @@ SIZE        MD5(10)     PATH
       5599  cffda93ca2  docs/ARCHITECTURE.md
       3098  21810010de  docs/PENTEST.md
      12223  33c7380d99  docs/PLUGIN.md
-      2720  80c2928238  docs/PUBLISH.md
+      4111  dcec4f97c4  docs/PUBLISH.md
       2278  b87dfe3b79  docs/SECURITY.md
       4585  47204488f0  docs/SETUP.md
       2116  9f1bd6751a  docs/USE-IOS.md
@@ -34,6 +38,10 @@ SIZE        MD5(10)     PATH
       4472  036a78a770  plugin/index.js
       1551  cb53c8326a  plugin/package.json
        698  2822b868c9  proxy/forward_watch.py
+     12336  60d8547732  proxy/mobile.html
+    165935  dd85972f93  proxy/proxy.py
+       745  ef26a69877  proxy/restart_svc.cmd
+       601  d093f0cbaa  proxy/svc_tunnel.ps1
      17719  1acb9809d0  proxy/hotpatch/00-base.css
      11706  c0d29850da  proxy/hotpatch/10-base.js
       3757  fedc12b563  proxy/hotpatch/30-rboverlay.js
@@ -48,10 +56,6 @@ SIZE        MD5(10)     PATH
      23738  007393bbcf  proxy/hotpatch/90-uiux.js
      11629  22b67ddb17  proxy/hotpatch/README-fileview.md
       3865  954fc8035e  proxy/hotpatch/README.md
-     12336  60d8547732  proxy/mobile.html
-    165935  dd85972f93  proxy/proxy.py
-       745  ef26a69877  proxy/restart_svc.cmd
-       601  d093f0cbaa  proxy/svc_tunnel.ps1
       5291  396a6aba11  tools/audit_proxy_log.py
       8471  065d0292e8  tools/chipview_test.js
       2554  0e548a7ef0  tools/compare_bundles.py
