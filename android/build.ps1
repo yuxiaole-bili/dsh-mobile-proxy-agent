@@ -1,0 +1,86 @@
+# 完全离线构建 DSH WebView APK（不需要 Gradle / 不需要网络）
+$ErrorActionPreference = "Stop"
+$JDK  = "D:\Android\jdk-17.0.2"
+$SDK  = "D:\Android\sdk"
+$BT   = "$SDK\build-tools\34.0.0"
+$AJAR = "$SDK\platforms\android-34\android.jar"
+$SRC  = "D:\code\dsh-android"
+$OUT  = "$SRC\out"
+
+$env:JAVA_HOME = $JDK
+$env:PATH = "$JDK\bin;$env:PATH"
+
+Write-Host "=== 0) 清理 ==="
+Remove-Item $OUT -Recurse -Force -EA SilentlyContinue
+New-Item -ItemType Directory -Path "$OUT\classes","$OUT\dex" -Force | Out-Null
+
+Write-Host "=== 1) aapt2 compile 资源 ==="
+& "$BT\aapt2.exe" compile --dir "$SRC\res" -o "$OUT\res.zip"
+if ($LASTEXITCODE -ne 0) { throw "aapt2 compile failed" }
+
+Write-Host "=== 2) javac 编译 Java ==="
+# javac prints an informational "uses or overrides a deprecated API" note on stderr
+# (Theme_Holo_Light / onBackPressed are pre-existing). Windows PowerShell 5.1 turns any
+# native stderr into a terminating NativeCommandError while $ErrorActionPreference=Stop,
+# which aborted the build even though javac exited 0. Relax it for this call only and
+# keep judging success by $LASTEXITCODE, which is the real signal.
+$eap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+& "$JDK\bin\javac.exe" -source 8 -target 8 -nowarn -encoding UTF-8 -bootclasspath $AJAR -classpath $AJAR `
+  -d "$OUT\classes" "$SRC\java\ai\deepseek\dsh\mobile\MainActivity.java"
+$ErrorActionPreference = $eap
+if ($LASTEXITCODE -ne 0) { throw "javac failed" }
+
+Write-Host "=== 3) d8 -> classes.dex ==="
+$classes = (Get-ChildItem "$OUT\classes" -Recurse -Filter *.class | ForEach-Object { $_.FullName })
+& "$BT\d8.bat" --lib $AJAR --min-api 24 --output "$OUT\dex" @classes
+if ($LASTEXITCODE -ne 0) { throw "d8 failed" }
+
+Write-Host "=== 4) aapt2 link -> base.apk ==="
+& "$BT\aapt2.exe" link -o "$OUT\base.apk" -I $AJAR --manifest "$SRC\AndroidManifest.xml" `
+  --min-sdk-version 24 --target-sdk-version 34 --auto-add-overlay "$OUT\res.zip"
+if ($LASTEXITCODE -ne 0) { throw "aapt2 link failed" }
+
+Write-Host "=== 5) 把 classes.dex + 预装资源打进 apk（Python zipfile，避免依赖 zip 工具）==="
+$py = @'
+import sys, zipfile, shutil, os
+base, dex, out, assets = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+shutil.copyfile(base, out)
+with zipfile.ZipFile(out, "a", zipfile.ZIP_DEFLATED) as z:
+    z.write(dex, "classes.dex")
+    n = 0
+    if os.path.isdir(assets):
+        for name in sorted(os.listdir(assets)):
+            p = os.path.join(assets, name)
+            if os.path.isfile(p):
+                z.write(p, "assets/bundle/" + name)
+                n += 1
+    print("packed assets:", n)
+print("packed classes.dex ->", out)
+'@
+[System.IO.File]::WriteAllText("$OUT\_pack.py", ($py -replace "`r`n","`n"))
+python "$OUT\_pack.py" "$OUT\base.apk" "$OUT\dex\classes.dex" "$OUT\unsigned.apk" "$SRC\appassets"
+if ($LASTEXITCODE -ne 0) { throw "pack failed" }
+
+Write-Host "=== 6) zipalign ==="
+& "$BT\zipalign.exe" -f 4 "$OUT\unsigned.apk" "$OUT\aligned.apk"
+if ($LASTEXITCODE -ne 0) { throw "zipalign failed" }
+
+Write-Host "=== 7) 生成调试签名密钥 ==="
+$ks = "$SRC\debug.keystore"
+if (-not (Test-Path $ks)) {
+  & "$JDK\bin\keytool.exe" -genkeypair -keystore $ks -storepass android -keypass android `
+    -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 `
+    -dname "CN=Android Debug,O=Android,C=US"
+  if ($LASTEXITCODE -ne 0) { throw "keytool failed" }
+}
+
+Write-Host "=== 8) apksigner 签名 ==="
+& "$BT\apksigner.bat" sign --ks $ks --ks-pass pass:android --key-pass pass:android `
+  --out "$OUT\DSH.apk" "$OUT\aligned.apk"
+if ($LASTEXITCODE -ne 0) { throw "apksigner failed" }
+
+Write-Host "=== 9) 校验 ==="
+& "$BT\apksigner.bat" verify --print-certs "$OUT\DSH.apk"
+& "$BT\aapt.exe" dump badging "$OUT\DSH.apk" | Select-Object -First 4
+Write-Host ("`nAPK: " + "$OUT\DSH.apk" + "  (" + (Get-Item "$OUT\DSH.apk").Length + " bytes)")

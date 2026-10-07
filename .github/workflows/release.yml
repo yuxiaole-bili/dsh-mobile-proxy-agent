@@ -1,0 +1,61 @@
+name: release
+
+# 打标签即发布：
+#   git tag v0.2.0 && git push origin v0.2.0
+# 发布说明自动从 CHANGELOG.md 抽取与标签同名的版本段；
+# 标签里带 alpha/beta/rc 的自动标为 pre-release。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要发布的标签（需已存在）
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 从 CHANGELOG 抽取本版说明
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          python3 - <<'PY' > NOTES.md
+          import os, re
+          tag = (os.environ.get('TAG') or '').strip()
+          ver = tag.lstrip('v')
+          text = open('CHANGELOG.md', encoding='utf-8').read()
+          m = re.search(r'^##\s+' + re.escape(ver) + r'.*?$(.*?)(?=^##\s|\Z)',
+                        text, re.M | re.S)
+          if m:
+              print(m.group(0).strip())
+          else:
+              print('## %s\n\n详见 [CHANGELOG.md](CHANGELOG.md)。' % tag)
+          PY
+          echo "----- 发布说明预览 -----"
+          head -20 NOTES.md
+
+      - name: 判定是否 pre-release
+        id: pre
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          case "$TAG" in
+            *alpha*|*beta*|*rc*) echo "pre=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "pre=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: NOTES.md
+          prerelease: ${{ steps.pre.outputs.pre }}
+          generate_release_notes: false

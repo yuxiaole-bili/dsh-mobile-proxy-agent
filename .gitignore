@@ -1,0 +1,30 @@
+# 运行时/备份/证据：绝不入库
+*.bak
+*.bak_*
+*.disabled_*
+*.part
+evidence/
+__pycache__/
+node_modules/
+
+# 凭据与本地配置
+cap.key
+*.key
+*.pem
+.env
+*.secret
+config.local.*
+
+# 构建产物
+dist/
+build/
+*.zip
+*.apk
+*.iso
+*.qcow2
+
+# 编辑器/系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

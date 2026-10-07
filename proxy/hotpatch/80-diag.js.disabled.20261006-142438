@@ -1,0 +1,78 @@
+/* 80-diag.js —— 诊断信标 v2（查"文件资源服务不可用"的真凶）
+ *
+ * v1 已确认：手机与 PC 是同一份启动清单（rev9f35f1 / 71 个插件），但手机上报了一个
+ * **页面内 JS 运行时错误**（filename = 页面 URL）。
+ * v2 把错误文本与"安全上下文能力"打回代理日志：
+ *   /__diag/ctx<6 位标志>    isSecureContext / crypto.subtle / mediaDevices / clipboard / storage / serviceWorker
+ *   /__diag/m<idx>.<seq>.<分片>   错误 message 的分片（每片 24 字符，最多 5 片）
+ *   /__diag/s<idx>.<seq>.<分片>   错误 stack 首行的分片
+ *   /__diag/l<idx>.<行>.<列>      出错位置
+ * 关掉：地址加 ?no-diag=1
+ */
+(function () {
+  var W = window, D = document;
+  if (W.__dshDiag2 || /[?&]no-diag=1/.test(location.search)) { return; }
+
+  function beacon(path) {
+    try {
+      if (W.fetch) { var p = W.fetch("/__diag/" + path, { cache: "no-store" }); if (p && p.catch) { p.catch(function () {}); } }
+    } catch (e) {}
+  }
+
+  function chunks(prefix, idx, text) {
+    var t = String(text || "").replace(/\s+/g, " ").slice(0, 120);
+    if (!t) { return; }
+    var size = 24, seq = 0, i;
+    for (i = 0; i < t.length && seq < 5; i += size) {
+      seq += 1;
+      var part = t.slice(i, i + size).replace(/[^\x20-\x7E\u4e00-\u9fff]/g, "?");
+      beacon(prefix + idx + "." + seq + "." + part);
+    }
+  }
+
+  function caps() {
+    var f = "";
+    try { f += W.isSecureContext ? "1" : "0"; } catch (e) { f += "?"; }
+    try { f += (W.crypto && W.crypto.subtle) ? "1" : "0"; } catch (e) { f += "?"; }
+    try { f += (W.navigator && W.navigator.mediaDevices) ? "1" : "0"; } catch (e) { f += "?"; }
+    try { f += (W.navigator && W.navigator.clipboard) ? "1" : "0"; } catch (e) { f += "?"; }
+    try { f += (W.navigator && W.navigator.storage) ? "1" : "0"; } catch (e) { f += "?"; }
+    try { f += (W.navigator && W.navigator.serviceWorker) ? "1" : "0"; } catch (e) { f += "?"; }
+    return f;
+  }
+
+  var n = 0;
+  try {
+    W.addEventListener("error", function (ev) {
+      try {
+        if (ev && ev.target && (ev.target.src || ev.target.href) && !ev.message) { return; } // 资源错误交给 v1
+        if (n >= 4) { return; }
+        n += 1;
+        chunks("m", n, ev && ev.message ? ev.message : "(no message)");
+        var st = ev && ev.error && ev.error.stack ? String(ev.error.stack).split("\n")[0] : "";
+        chunks("s", n, st);
+        beacon("l" + n + "." + ((ev && ev.lineno) || 0) + "." + ((ev && ev.colno) || 0));
+      } catch (e) {}
+    }, true);
+  } catch (e) {}
+
+  function report() {
+    try {
+      beacon("ctx" + caps());
+      /* 启动期关键对象是否就绪：polyfill 有没有真的先跑、boot-ready 有没有 resolve */
+      var flags = "";
+      try { flags += (typeof Promise.withResolvers === "function") ? "1" : "0"; } catch (e) { flags += "?"; }
+      try { flags += (typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") ? "1" : "0"; } catch (e) { flags += "?"; }
+      try { flags += (W.__DSH_BOOT_READY__ && typeof W.__DSH_BOOT_READY__.then === "function") ? "1" : "0"; } catch (e) { flags += "?"; }
+      try { flags += (document.querySelector('script#dsh-polyfill') !== null) ? "1" : "0"; } catch (e) { flags += "?"; }
+      beacon("pf" + flags);
+      var boot = W.__DSH_BOOT__;
+      beacon("boot" + (boot && boot.rev ? "1" : "0"));
+    } catch (e) {}
+  }
+
+  if (D.readyState === "loading") { D.addEventListener("DOMContentLoaded", function () { setTimeout(report, 1200); }); }
+  else { setTimeout(report, 1200); }
+  setTimeout(report, 8000);
+  W.__dshDiag2 = { version: "2026-10-06.2", count: function () { return n; } };
+})();

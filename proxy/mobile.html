@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0b0f14">
+<title>DSH 手机端</title>
+<style>
+  :root{
+    --bg:#0b0f14; --bg2:#111823; --line:#1e2836; --fg:#e8eef7; --dim:#8fa0b5;
+    --user:#1b4dff; --userfg:#fff; --ai:#16202c; --warn:#ffb020; --ok:#2ecc71; --err:#ff5d5d;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    overscroll-behavior:none}
+  body{display:flex;flex-direction:column;height:100dvh}
+  header{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 10px;
+    background:var(--bg2);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  #title{flex:1;min-width:0;font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #state{font-size:12px;color:var(--dim);white-space:nowrap}
+  #state.run{color:var(--ok)} #state.err{color:var(--err)}
+  header button{background:#1b2634;color:var(--fg);border:1px solid var(--line);border-radius:10px;
+    padding:9px 12px;font-size:15px;min-height:42px}
+  #sessions{display:none;position:absolute;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 62px);
+    background:var(--bg2);border:1px solid var(--line);border-radius:12px;z-index:20;max-height:60vh;overflow:auto;
+    box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  #sessions.show{display:block}
+  #sessions .s{padding:12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+  #sessions .s:last-child{border-bottom:none}
+  #sessions .s .t{font-weight:600;font-size:15px}
+  #sessions .s .m{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  main{flex:1 1 auto;overflow-y:auto;padding:12px 10px 18px;-webkit-overflow-scrolling:touch}
+  .turn{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+  .msg{max-width:92%;border-radius:16px;padding:10px 13px;word-break:break-word;white-space:pre-wrap}
+  .me{align-self:flex-end;background:var(--user);color:var(--userfg);border-bottom-right-radius:6px}
+  .ai{align-self:flex-start;background:var(--ai);border:1px solid var(--line);border-bottom-left-radius:6px}
+  .tool{align-self:flex-start;max-width:92%;background:#0e1520;border:1px dashed #2a3a4f;border-radius:10px;
+    padding:8px 10px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--dim)}
+  .tool .h{color:#9fd0ff;font-weight:600}
+  .tool pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-all;max-height:40vh;overflow:auto}
+  .think{align-self:flex-start;max-width:92%;background:#131a24;border:1px solid var(--line);border-radius:10px;
+    padding:8px 10px;font-size:13px;color:var(--dim)}
+  .think summary{cursor:pointer}
+  .meta{align-self:flex-start;font-size:11px;color:#5d6b7d;padding-left:4px}
+  footer{flex:0 0 auto;border-top:1px solid var(--line);background:var(--bg2);
+    padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 8px);display:flex;gap:8px;align-items:flex-end}
+  #input{flex:1;background:#0e1520;color:var(--fg);border:1px solid var(--line);border-radius:14px;
+    padding:11px 12px;font-size:16px;line-height:1.4;max-height:38vh;min-height:46px;resize:none;outline:none}
+  #send{background:var(--user);color:#fff;border:none;border-radius:14px;padding:0 16px;min-height:46px;
+    font-size:16px;font-weight:600;min-width:68px}
+  #send:disabled{opacity:.45}
+  #mode{background:#0e1520;color:var(--dim);border:1px solid var(--line);border-radius:12px;min-height:46px;padding:0 8px;font-size:13px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 84px);
+    background:#22303f;color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;z-index:50}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <button id="pick" title="切换会话">☰</button>
+  <div id="title">加载中…</div>
+  <div id="state">…</div>
+  <button id="reload" title="刷新">⟳</button>
+</header>
+<div id="sessions"></div>
+<main id="log"></main>
+<footer>
+  <select id="mode"><option value="queue">排队</option><option value="steer">插话</option></select>
+  <textarea id="input" rows="1" placeholder="对 harness 说点什么…"></textarea>
+  <button id="send">发送</button>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const log = $('log');
+let SESSIONS = [], CUR = null, SEQ = 0, POLL = null, SENDING = false, LAST_HTML = '', LAST_SEQ = -1;
+
+function toast(msg, ok) {
+  const t = $('toast'); t.textContent = msg; t.style.background = ok ? '#1e7a4d' : '#7a2b2b';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800);
+}
+function uuid() {
+  return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,
+    c => { const r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }));
+}
+async function rpc(endpoint, args) {
+  const body = { type: 'client-request', rpcId: uuid(), method: endpoint, payload: { args: args || {} } };
+  const r = await fetch('/api/' + endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-mobile-client': '1' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  const res = d && d.result;
+  if (!res) throw new Error('响应格式异常');
+  if (res.ok) return res.value;
+  throw new Error((res.error && res.error.message) || '调用失败');
+}
+function setState(text, cls) { const s = $('state'); s.textContent = text; s.className = cls || ''; }
+
+async function loadSessions() {
+  const v = await rpc('session/list', { _request: {} });
+  SESSIONS = (v.items || []).slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  if (!CUR && SESSIONS.length) CUR = SESSIONS[0];
+  if (CUR) { const f = SESSIONS.find(s => s.sessionId === CUR.sessionId); if (f) CUR = f; }
+  renderSessions();
+  renderTitle();
+}
+function renderSessions() {
+  const box = $('sessions');
+  box.innerHTML = SESSIONS.map(s => {
+    const t = (s.projections && s.projections.values && s.projections.values.title) || '(未命名会话)';
+    const when = new Date(s.updatedAt || Date.now()).toLocaleString('zh-CN', { hour12: false });
+    return `<div class="s" data-id="${s.sessionId}"><div class="t">${esc(t)}</div>
+      <div class="m">${esc((s.cwd || ''))} · ${esc(when)}${s.running ? ' · 运行中' : ''}</div></div>`;
+  }).join('');
+  box.querySelectorAll('.s').forEach(el => el.onclick = () => {
+    CUR = SESSIONS.find(s => s.sessionId === el.dataset.id);
+    box.classList.remove('show'); LAST_HTML = ''; log.innerHTML = ''; renderTitle(); refresh(true);
+  });
+}
+function renderTitle() {
+  if (!CUR) { $('title').textContent = '(无会话)'; return; }
+  const t = (CUR.projections && CUR.projections.values && CUR.projections.values.title) || '会话';
+  $('title').textContent = t;
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function blocksToHtml(blocks) {
+  let out = '';
+  for (const b of (blocks || [])) {
+    if (!b || typeof b !== 'object') continue;
+    if (b.type === 'text' && b.text) out += `<div class="msg ai">${esc(b.text)}</div>`;
+    else if (b.type === 'reasoning' && b.text) out += `<details class="think"><summary>思考过程</summary><div>${esc(b.text)}</div></details>`;
+    else if (b.type === 'tool-call') out += toolHtml(b.name, b.arguments);
+  }
+  return out;
+}
+function toolHtml(name, args) {
+  let a = args;
+  try { const o = typeof args === 'string' ? JSON.parse(args) : args;
+    a = o && (o.description || o.command || o.path || JSON.stringify(o)); } catch (e) { a = String(args); }
+  const short = String(a || '').slice(0, 90);
+  return `<details class="tool"><summary><span class="h">🔧 ${esc(name)}</span> ${esc(short)}</summary>
+    <pre>${esc(String(args))}</pre></details>`;
+}
+function msgHtml(m) {
+  if (!m) return '';
+  const role = m.role === 'user' ? 'me' : 'ai';
+  const blocks = Array.isArray(m.content) ? m.content : [];
+  if (role === 'me') {
+    const text = blocks.filter(b => b && b.type === 'text').map(b => b.text).join('\n');
+    return `<div class="msg me">${esc(text)}</div>`;
+  }
+  return blocksToHtml(blocks);
+}
+function render(records) {
+  const parts = [];
+  for (const rec of records) {
+    const ev = rec.event || {}; const d = ev.data || {};
+    if (ev.type === 'user/message') parts.push(msgHtml(d.message));
+    else if (ev.type === 'assistant/message') parts.push(msgHtml(d.message));
+    else if (ev.type === 'tool/call') parts.push(toolHtml(d.name, d.arguments));
+    else if (ev.type === 'tool/result') {
+      const txt = typeof d.result === 'string' ? d.result : JSON.stringify(d.result);
+      parts.push(`<details class="tool"><summary>✅ 工具结果 ${esc(d.callId || '')}</summary><pre>${esc((txt || '').slice(0, 4000))}</pre></details>`);
+    } else if (ev.type === 'assistant/attempt' || ev.type === 'llm/retry') {
+      parts.push(`<div class="meta">${esc(ev.type)}</div>`);
+    }
+  }
+  const html = parts.join('');
+  if (html !== LAST_HTML) {
+    const atBottom = (log.scrollHeight - log.scrollTop - log.clientHeight) < 120;
+    LAST_HTML = html; log.innerHTML = html || '<div class="meta">（这个会话还没有消息）</div>';
+    if (atBottom) log.scrollTop = log.scrollHeight;
+  }
+}
+async function refresh(force) {
+  if (!CUR) return;
+  try {
+    // 先取会话列表：刷新标题/状态，并拿到**准确的 asOfSeq 游标**
+    const l = await rpc('session/list', { _request: {} });
+    SESSIONS = (l.items || []).slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const f = SESSIONS.find(s => s.sessionId === CUR.sessionId);
+    if (f) { CUR = f; renderTitle(); }
+    const seq = (CUR.projections && CUR.projections.asOfSeq) || 0;
+    // 只在游标变化（或有新内容/手动刷新）时才拉消息，省流量
+    if (force || seq !== LAST_SEQ || CUR.running) {
+      const v = await rpc('session/page', { request: { address: { kind: 'session', sessionId: CUR.sessionId },
+        throughSeq: seq, maxMessages: 20 } });   // 必须正好等于游标，超过会被拒（past cursor）
+      LAST_SEQ = seq;
+      render(v.records || []);
+    }
+    setState(CUR.running ? '运行中' : '空闲', CUR.running ? 'run' : '');
+  } catch (e) {
+    setState('连接异常', 'err');
+    if (force) toast('读取失败: ' + e.message);
+  }
+}
+async function send() {
+  if (SENDING || !CUR) return;
+  const text = $('input').value.trim();
+  if (!text) return;
+  SENDING = true; $('send').disabled = true;
+  try {
+    await rpc('session/prompt', { request: { requestId: uuid(), sessionId: CUR.sessionId,
+      mode: $('mode').value, content: [{ type: 'text', text }], clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone } });
+    $('input').value = ''; $('input').style.height = 'auto';
+    setState('已发送', 'run');
+    toast('已发送', true);
+    setTimeout(() => refresh(true), 400);
+  } catch (e) { toast('发送失败: ' + e.message); }
+  SENDING = false; $('send').disabled = false;
+}
+function schedule() {
+  if (POLL) clearInterval(POLL);
+  POLL = setInterval(refresh, 2500);
+}
+$('send').onclick = send;
+$('reload').onclick = () => refresh(true);
+$('pick').onclick = () => $('sessions').classList.toggle('show');
+$('input').addEventListener('input', function () {
+  this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, window.innerHeight * 0.38) + 'px';
+});
+$('input').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+(async () => {
+  try { await loadSessions(); await refresh(true); schedule(); }
+  catch (e) { setState('无法连接', 'err'); log.innerHTML = '<div class="meta">' + esc(e.message) + '</div>'; }
+})();
+</script>
+</body>
+</html>

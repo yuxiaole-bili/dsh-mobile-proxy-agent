@@ -1,0 +1,67 @@
+{
+  "name": "dsh-mobile-kit",
+  "version": "0.2.0",
+  "description": "Make the DeepSeek Harness web surface usable on old phones: Chrome-114 polyfills, mobile layout fixes, and host-side endpoint discovery for LAN/VPN switching.",
+  "meta": {
+    "title": "Mobile Kit",
+    "description": "Chrome-114 polyfills + mobile layout fixes + LAN/VPN endpoint discovery for old phones."
+  },
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.2.0-rc.2": "compatible"
+      }
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-bundle",
+    "mobile",
+    "android",
+    "webview",
+    "deepseek",
+    "deepseek-harness",
+    "harness",
+    "tailscale",
+    "pwa",
+    "hotpatch"
+  ],
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.6"
+  },
+  "author": {
+    "name": "yuxiaole_awa",
+    "url": "https://github.com/yuxiaole-bili"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent.git"
+  },
+  "homepage": "https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent#readme",
+  "bugs": {
+    "url": "https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent/issues"
+  }
+}
