@@ -44,9 +44,12 @@ jobs:
           ls -d "$SDK"/build-tools/* | tail -2
 
       - name: 用固定 keystore 签名（可选：配置了 Secrets 才生效）
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          # secrets 不能直接写在 if 里（会导致整个工作流校验失败、连 job 都不启动）
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        if: ${{ env.KS_B64 != '' }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
           echo "KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
 
       - name: 构建 APK
@@ -58,8 +61,9 @@ jobs:
           export DSH_SRC="$GITHUB_WORKSPACE/android" DSH_OUT="$GITHUB_WORKSPACE/out"
           export DSH_JDK="$JAVA_HOME" DSH_SDK="$ANDROID_HOME"
           pwsh -File android/build.ps1
-          cp out/DSH.apk "DSH-${GITHUB_REF_NAME:-manual}.apk"
-          ls -l "DSH-${GITHUB_REF_NAME:-manual}.apk"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          cp out/DSH.apk "DSH-${TAG}-ci.apk"
+          ls -l "DSH-${TAG}-ci.apk"
 
       - name: 挂到 Release
         uses: softprops/action-gh-release@v2
