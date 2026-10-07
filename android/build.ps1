@@ -10,6 +10,24 @@ if (-not $BT) { throw "find build-tools failed" }
 $AJAR = (Get-ChildItem "$SDK\platforms\android-*\android.jar" -EA SilentlyContinue | Sort-Object FullName | Select-Object -Last 1).FullName
 if (-not $AJAR) { throw "find android.jar failed" }
 
+
+# —— 工具解析：Windows 用 .exe/.bat，Linux/macOS 用同名脚本 ——
+function Resolve-Tool([string]$dir, [string]$name) {
+  foreach ($c in @((Join-Path $dir "$name.exe"), (Join-Path $dir "$name.bat"), (Join-Path $dir $name))) {
+    if (Test-Path $c) { return $c }
+  }
+  throw "找不到工具: $name (在 $dir)"
+}
+$IS_WIN = ($env:OS -eq "Windows_NT")
+$PYEXE  = if ($IS_WIN) { "python" } else { "python3" }
+
+$AAPT2 = Resolve-Tool $BT "aapt2"
+$D8 = Resolve-Tool $BT "d8"
+$ZIPALIGN = Resolve-Tool $BT "zipalign"
+$APKSIGNER = Resolve-Tool $BT "apksigner"
+$JAVAC = Resolve-Tool (Join-Path $JDK "bin") "javac"
+$KEYTOOL = Resolve-Tool (Join-Path $JDK "bin") "keytool"
+
 $env:JAVA_HOME = $JDK
 $env:PATH = "$JDK\bin;$env:PATH"
 
@@ -18,7 +36,7 @@ Remove-Item $OUT -Recurse -Force -EA SilentlyContinue
 New-Item -ItemType Directory -Path "$OUT\classes","$OUT\dex" -Force | Out-Null
 
 Write-Host "=== 1) aapt2 compile 资源 ==="
-& "$BT\aapt2.exe" compile --dir "$SRC\res" -o "$OUT\res.zip"
+& $AAPT2 compile --dir "$SRC\res" -o "$OUT\res.zip"
 if ($LASTEXITCODE -ne 0) { throw "aapt2 compile failed" }
 
 Write-Host "=== 2) javac 编译 Java ==="
@@ -29,18 +47,18 @@ Write-Host "=== 2) javac 编译 Java ==="
 # keep judging success by $LASTEXITCODE, which is the real signal.
 $eap = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
-& "$JDK\bin\javac.exe" -source 8 -target 8 -nowarn -encoding UTF-8 -bootclasspath $AJAR -classpath $AJAR `
+& $JAVAC -source 8 -target 8 -nowarn -encoding UTF-8 -bootclasspath $AJAR -classpath $AJAR `
   -d "$OUT\classes" "$SRC\java\ai\deepseek\dsh\mobile\MainActivity.java"
 $ErrorActionPreference = $eap
 if ($LASTEXITCODE -ne 0) { throw "javac failed" }
 
 Write-Host "=== 3) d8 -> classes.dex ==="
 $classes = (Get-ChildItem "$OUT\classes" -Recurse -Filter *.class | ForEach-Object { $_.FullName })
-& "$BT\d8.bat" --lib $AJAR --min-api 24 --output "$OUT\dex" @classes
+& $D8 --lib $AJAR --min-api 24 --output "$OUT\dex" @classes
 if ($LASTEXITCODE -ne 0) { throw "d8 failed" }
 
 Write-Host "=== 4) aapt2 link -> base.apk ==="
-& "$BT\aapt2.exe" link -o "$OUT\base.apk" -I $AJAR --manifest "$SRC\AndroidManifest.xml" `
+& $AAPT2 link -o "$OUT\base.apk" -I $AJAR --manifest "$SRC\AndroidManifest.xml" `
   --min-sdk-version 24 --target-sdk-version 34 --auto-add-overlay "$OUT\res.zip"
 if ($LASTEXITCODE -ne 0) { throw "aapt2 link failed" }
 
@@ -63,28 +81,28 @@ with zipfile.ZipFile(out, "a", zipfile.ZIP_DEFLATED) as z:
 print("packed classes.dex ->", out)
 '@
 [System.IO.File]::WriteAllText("$OUT\_pack.py", ($py -replace "`r`n","`n"))
-python "$OUT\_pack.py" "$OUT\base.apk" "$OUT\dex\classes.dex" "$OUT\unsigned.apk" "$ASSETS"
+& $PYEXE "$OUT\_pack.py" "$OUT\base.apk" "$OUT\dex\classes.dex" "$OUT\unsigned.apk" "$ASSETS"
 if ($LASTEXITCODE -ne 0) { throw "pack failed" }
 
 Write-Host "=== 6) zipalign ==="
-& "$BT\zipalign.exe" -f 4 "$OUT\unsigned.apk" "$OUT\aligned.apk"
+& $ZIPALIGN -f 4 "$OUT\unsigned.apk" "$OUT\aligned.apk"
 if ($LASTEXITCODE -ne 0) { throw "zipalign failed" }
 
 Write-Host "=== 7) 生成调试签名密钥 ==="
 $ks = "$SRC\debug.keystore"
 if (-not (Test-Path $ks)) {
-  & "$JDK\bin\keytool.exe" -genkeypair -keystore $ks -storepass android -keypass android `
+  & $KEYTOOL -genkeypair -keystore $ks -storepass android -keypass android `
     -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 `
     -dname "CN=Android Debug,O=Android,C=US"
   if ($LASTEXITCODE -ne 0) { throw "keytool failed" }
 }
 
 Write-Host "=== 8) apksigner 签名 ==="
-& "$BT\apksigner.bat" sign --ks $ks --ks-pass pass:android --key-pass pass:android `
+& $APKSIGNER sign --ks $ks --ks-pass pass:android --key-pass pass:android `
   --out "$OUT\DSH.apk" "$OUT\aligned.apk"
 if ($LASTEXITCODE -ne 0) { throw "apksigner failed" }
 
 Write-Host "=== 9) 校验 ==="
-& "$BT\apksigner.bat" verify --print-certs "$OUT\DSH.apk"
-& "$BT\aapt.exe" dump badging "$OUT\DSH.apk" | Select-Object -First 4
+& $APKSIGNER verify --print-certs "$OUT\DSH.apk"
+if (Test-Path (Join-Path $BT ($(if ($IS_WIN) {"aapt.exe"} else {"aapt"})))) { & (Resolve-Tool $BT "aapt") dump badging "$OUT\DSH.apk" | Select-Object -First 4
 Write-Host ("`nAPK: " + "$OUT\DSH.apk" + "  (" + (Get-Item "$OUT\DSH.apk").Length + " bytes)")
