@@ -1,21 +1,22 @@
 DSH Mobile Proxy Agent -- 开源库文件清单
 作者: yuxiaole_awa  https://github.com/yuxiaole-bili
 仓库: https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent
-更新时间: 2026-10-08 01:05:02
+版本: v0.2.1
+更新时间: 2026-10-08 23:07:57
 文件数: 127   总大小: 14.28 MB
 SIZE        MD5(10)     PATH
 ------------------------------------------------------------------------
        110  0b9c616b80  .gitattributes
        397  5576f0b19a  .gitignore
-      1694  303bc735fd  CHANGELOG.md
+      3023  fedafc5f26  CHANGELOG.md
       1104  30bc3f2a0d  LICENSE
-     18998  6feb417481  README.md
+     18998  d9e13395ad  README.md
+      2666  5ada884191  debug.keystore
       2628  f42e190f16  .github/workflows/android.yml
       1804  ac7175c45f  .github/workflows/release.yml
       1375  8b75cb89f1  .github/workflows/secret-scan.yml
       1730  e6db11f78b  android/AndroidManifest.xml
-      4731  231aee22ef  android/build.ps1
-      4681  c2ce865fc1  android/build.sh
+      6202  be9c406f04  android/build.ps1
       2666  c201e82df2  android/debug.keystore
     139998  0e90eadd5c  android/java/ai/deepseek/dsh/mobile/MainActivity.java
        884  78edc13aba  android/res/mipmap-hdpi/ic_launcher.png
@@ -45,16 +46,16 @@ SIZE        MD5(10)     PATH
      94956  0cad81c3ee  docs/screenshots/overview-launcher.png
     176189  598fdda47d  docs/screenshots/overview-settings.png
       5482  156600ee96  plugin/README.md
-      9458  da57e8a84a  plugin/client.js
+      9458  5b33dbb5f3  plugin/client.js
         60  db0b7ae285  plugin/cordis.patch.yml
-      4472  036a78a770  plugin/index.js
-      1551  cb53c8326a  plugin/package.json
+      4472  cdcf235b1a  plugin/index.js
+      1551  872171cf3f  plugin/package.json
        698  2822b868c9  proxy/forward_watch.py
      12336  60d8547732  proxy/mobile.html
     165935  dd85972f93  proxy/proxy.py
        745  ef26a69877  proxy/restart_svc.cmd
        601  d093f0cbaa  proxy/svc_tunnel.ps1
-     17719  1acb9809d0  proxy/hotpatch/00-base.css
+     20544  4f13d899ca  proxy/hotpatch/00-base.css
      11706  c0d29850da  proxy/hotpatch/10-base.js
       3757  fedc12b563  proxy/hotpatch/30-rboverlay.js
       3757  fedc12b563  proxy/hotpatch/30-rboverlay.js.disabled.20261006-142438

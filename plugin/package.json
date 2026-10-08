@@ -1,6 +1,6 @@
 {
   "name": "dsh-mobile-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Make the DeepSeek Harness web surface usable on old phones: Chrome-114 polyfills, mobile layout fixes, and host-side endpoint discovery for LAN/VPN switching.",
   "meta": {
     "title": "Mobile Kit",

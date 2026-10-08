@@ -6,7 +6,7 @@ DSH 的网页端是给桌面浏览器写的。放到一台 2020 年的安卓手�
 
 纯 Python 3 标准库 + 少量前端脚本，无数据库、无外部服务依赖。已在华为 P40（视口 360×780）实机验证。
 
-> **当前版本 v0.2.0** · 作者 [@yuxiaole_awa](https://github.com/yuxiaole-bili) · 仓库 <https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent>
+> **当前版本 v0.2.1** · 作者 [@yuxiaole_awa](https://github.com/yuxiaole-bili) · 仓库 <https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent>
 >
 > 本版做过一轮**安全性自查与真机攻防演练**：10 轮 CTF（夺旗）从 9/10 收敛到 **10/10 全拦**，
 > 详见 [安全说明](#安全说明) 与 [docs/PENTEST.md](docs/PENTEST.md)。

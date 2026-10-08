@@ -20,7 +20,7 @@
 export const name = 'mobile-kit'
 export const inject = ['webServer']
 
-const VERSION = '0.2.0'
+const VERSION = '0.2.1'
 const BASE = '/mobile-kit'
 
 function sendJson(res, status, payload) {

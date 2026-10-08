@@ -1,7 +1,7 @@
 window.__ModuleLoader__.load({
   id: 'dsh-mobile-kit',
   factory(require) {
-    var VERSION = '0.2.0';
+    var VERSION = '0.2.1';
 
     // Same detection the reverse proxy uses: only touch layout on a phone-like UA.
     var MOBILE = /Android|iPhone|iPod|Mobile|HarmonyOS/i.test(navigator.userAgent || '');
