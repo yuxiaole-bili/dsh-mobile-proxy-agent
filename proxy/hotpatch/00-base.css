@@ -331,6 +331,22 @@
     transform: none !important;
   }
 
+
+  /* 底部下拉面板：真正装内容的是内层 pane，它 overflow-y:hidden → 用户滑不动（脚本却能滚）。
+     实测：nArs4W_paneEmptyCards h=185 / scrollHeight=284 / overflow-y:hidden / scrollTop 可写。
+     app 没有 preventDefault touchmove，所以放开 overflow 即可。 */
+  [class*="nArs4W_paneEmptyCards"],
+  [class*="nArs4W_paneBody"],
+  [class*="nArs4W_paneList"],
+  [class*="nArs4W_paneScroll"] {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    min-height: 0 !important;
+  }
+
   /* ③ 底部 + 面板：原来 overflow:visible，内容超出屏幕又划不动 → 给滚动容器 + 限高 */
   [class*="nArs4W_bottomPanel"] {
     max-height: calc(100vh - 150px) !important;
