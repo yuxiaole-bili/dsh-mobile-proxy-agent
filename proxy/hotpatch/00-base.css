@@ -87,7 +87,10 @@
                                                        text-overflow: ellipsis !important; }
   /* 图标按钮缩一号，把宽度让给 chip */
   [class*="headerUtilities"] { flex: 0 1 auto !important; min-width: 0 !important; gap: 2px !important; }
-  [class*="headerUtilities"] button, [class*="headerUtilities"] [role="button"] {
+  /* 只缩"头部图标按钮"本身。**必须排除下拉菜单项** —— 菜单是渲染在 headerUtilities 内部的，
+     否则会把 _item_4ub78_* 也压成 26px，文字被 overflow 裁掉（实测：菜单只剩图标）。 */
+  [class*="headerUtilities"] button:not([class*="_item_"]):not([role="menuitem"]),
+  [class*="headerUtilities"] [role="button"]:not([class*="_item_"]):not([role="menuitem"]) {
     width: 26px !important; height: 26px !important; padding: 0 !important; flex: 0 0 auto !important;
   }
   /* chip 再收一点，保证一行放得下 */
@@ -128,9 +131,11 @@
    以及弱 GPU 上渲染 4000+ 节点 + 模糊/阴影。这里把渲染侧压下来。 */
 @media (max-width: 820px) {
   /* 长列表：屏外的消息不参与布局与绘制（Chrome 85+ 支持；记不住高度时用 72px 兜底） */
-  [class*="flowItem"], [class*="callRow"], [class*="WW4l1q_root"], [class*="_row_"] {
+  /* 只对"长会话里的大块"启用；**绝不能**用 [class*="_row_"] 这种泛选择器 ——
+     它会命中弹窗菜单行/底部面板行，导致文字被跳过渲染（实测：菜单只剩图标、文字消失） */
+  [class*="flowItem"], [class*="callRow"], [class*="WW4l1q_root"] {
     content-visibility: auto !important;
-    contain-intrinsic-size: auto 72px;
+    contain-intrinsic-size: auto 96px;
   }
   /* 模糊与厚阴影在弱 GPU 上是主要掉帧来源 */
   * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
