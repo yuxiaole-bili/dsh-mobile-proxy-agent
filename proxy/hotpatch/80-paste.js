@@ -24,135 +24,46 @@
       if (/[?&]no-pastefold=1\b/.test(location.search)) { return false; }
       if (/[?&]no-pastefold=0\b/.test(location.search)) { localStorage.setItem(LS, '1'); return true; }
       var v = localStorage.getItem(LS);
-      return v === null ? true : v === '1';           /* 默认开启 */
+      return v === '1';                                /* 默认关闭：折叠是可选项 */
     } catch (e) { return true; }
   }
-  if (!enabled()) {
-    W.__dshPaste = { disabled: true, enabled: false, enable: function () {
-      try { localStorage.setItem(LS, '1'); } catch (e) {} location.reload(); } };
-    return;
-  }
+  var FOLD = enabled();
 
-  var store = {}, seq = 0;
-  var LOG = [];
-  function log(x) { LOG.push(String(x)); if (LOG.length > 40) { LOG.shift(); } }
-
-  function editor() {
-    var els = D.querySelectorAll('textarea,[contenteditable="true"],[contenteditable=""]');
-    for (var i = els.length - 1; i >= 0; i -= 1) {
-      var r = els[i].getBoundingClientRect();
-      if (r.width > 140 && r.height > 18 && els[i].offsetParent !== null) { return els[i]; }
-    }
-    return null;
-  }
-  /* 粘贴/点击事件的 target 常常是外层容器而不是编辑器本身（实测 target 无类名），
-     所以判定以"当前聚焦的编辑器"为准，只在明显不相关时才拒绝。 */
-  function isEd(ed, t) {
-    if (!ed) { return false; }
-    if (t === ed || ed.contains(t)) { return true; }
-    var ae = D.activeElement;
-    if (ae && (ae === ed || ed.contains(ae))) { return true; }
-    var r = ed.getBoundingClientRect();
-    return r.width > 100 && r.height > 10;      // 编辑器可见且是页面上唯一的输入区
-  }
-  function val(ed) { return (ed.value !== undefined) ? ed.value : (ed.innerText || ''); }
-  function setVal(ed, s) {
-    if (ed.value !== undefined) {
-      ed.value = s;
-      ed.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      ed.innerText = s;
-      ed.dispatchEvent(new InputEvent('input', { bubbles: true }));
-    }
-  }
-  function label(text) {
-    var lines = String(text).split('\n').length;
-    return '⟦ ' + T('已粘贴 ', 'pasted ') + lines + T(' 行', ' lines') + ' / '
-      + String(text).length + T(' 字 · 点击展开', ' chars · click to expand') + ' ⟧';
-  }
-
-  /* 选中编辑器里 needle 对应的文本区间（textarea 用 selection，富文本用 Range） */
-  function selectNeedle(ed, needle) {
-    if (ed.value !== undefined) {
-      var idx = ed.value.indexOf(needle);
-      if (idx < 0) { return false; }
-      ed.focus();
-      ed.setSelectionRange(idx, idx + needle.length);
-      return true;
-    }
-    var at = (ed.innerText || '').indexOf(needle);
-    if (at < 0) { return false; }
-    var walker = D.createTreeWalker(ed, NodeFilter.SHOW_TEXT, null);
-    var pos = 0, t, sn = null, so = 0, en = null, eo = 0;
-    while ((t = walker.nextNode())) {
-      var len = t.nodeValue.length;
-      if (sn === null && at < pos + len) { sn = t; so = at - pos; }
-      if (en === null && at + needle.length <= pos + len) { en = t; eo = at + needle.length - pos; }
-      pos += len;
-      if (sn && en) { break; }
-    }
-    if (!sn || !en) { return false; }
-    try {
-      ed.focus();
-      var rg = D.createRange();
-      rg.setStart(sn, so);
-      rg.setEnd(en, eo);
-      var sel = W.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(rg);
-      return true;
-    } catch (e) { return false; }
-  }
-
-  /* 把 needle 换成 replacement（真实手势下 execCommand 走编辑器自身管线，最可靠） */
-  function replaceInEditor(ed, needle, replacement) {
-    try {
+  /* 分块写入：实测把一段长文本一次性塞进编辑器会被丢弃（这就是"粘贴吞字"的根因），
+     拆成 ~150 字一块、间隔 40ms 就能完整写进去。 */
+  function insertTextChunked(text, done) {
+    var full = String(text);
+    var base = null, rounds = 0;
+    (function step() {
+      var ed = editor();
+      if (!ed) { if (done) { done(false); } return; }
+      if (base === null) { base = val(ed).length; }
       var cur = val(ed);
-      if (cur.indexOf(needle) < 0) { return true; }
-      if (selectNeedle(ed, needle)) {
-        try { D.execCommand('insertText', false, replacement); } catch (e) {}
-        if (val(ed).indexOf(needle) < 0) { return true; }
+      var tail = cur.slice(base);
+      /* 已落地的长度 = 值尾部与目标前缀的最长重合（自愈：被丢弃的块会被补回来） */
+      var written = 0;
+      var max = Math.min(tail.length, full.length);
+      for (var L = max; L > 0; L -= 1) {
+        if (tail.slice(tail.length - L) === full.slice(0, L)) { written = L; break; }
       }
-      var j = val(ed).indexOf(needle);
-      if (j >= 0) { setVal(ed, val(ed).slice(0, j) + replacement + val(ed).slice(j + needle.length)); }
-      return val(ed).indexOf(needle) < 0;
-    } catch (e) { return false; }
-  }
-
-  /* 插入标记：每次都重新查询当前编辑器（app 可能重渲染导致旧节点游离），
-     首次写入推迟到事件派发之外，写入后校验 + 有限重试。 */
-  var pendingIns = [];
-  function flushIns() {
-    if (!pendingIns.length) { return; }
-    var ed = editor();
-    if (!ed) { return; }
-    pendingIns = pendingIns.filter(function (mark) {
-      var cur = val(ed);
-      if (cur.indexOf(mark) >= 0) { return false; }
+      if (written >= full.length) {
+        log('chunk-ok:' + written + '/' + full.length);
+        if (done) { done(true); }
+        return;
+      }
+      rounds += 1;
+      if (rounds > 60) { log('chunk-give-up:' + written + '/' + full.length); if (done) { done(false); } return; }
+      var part = full.slice(written, written + 150);
       try { ed.focus(); } catch (e) {}
       var before = val(ed);
-      try { D.execCommand('insertText', false, mark); } catch (e) {}
-      if (val(ed) === before || val(ed).indexOf(mark) < 0) {
-        try { D.execCommand('insertHTML', false, mark.replace(/[<>&]/g, '')); } catch (e) {}
+      try { D.execCommand('insertText', false, part); } catch (e) {}
+      if (val(ed) === before) {
+        /* 编辑器这次没吃下去 → 换 insertHTML 再试，仍不行就整体 setVal 兜底 */
+        try { D.execCommand('insertHTML', false, part.replace(/[<>&]/g, '')); } catch (e) {}
+        if (val(ed) === before) { setVal(ed, before + part); }
       }
-      if (val(ed).indexOf(mark) < 0) { setVal(ed, val(ed) + mark); }
-      return val(ed).indexOf(mark) < 0;      // 还在队列里就继续重试
-    });
-  }
-  var insTimer = setInterval(function () {
-    flushIns();
-    if (!pendingIns.length) { clearInterval(insTimer); insTimer = null; }
-  }, 200);
-  function insert(mark) {
-    pendingIns.push(mark);
-    if (!insTimer) {
-      insTimer = setInterval(function () {
-        flushIns();
-        if (!pendingIns.length) { clearInterval(insTimer); insTimer = null; }
-      }, 200);
-    }
-    setTimeout(flushIns, 0);        // 事件派发结束后立刻试一次
-    setTimeout(flushIns, 60);
+      setTimeout(step, 70);
+    })();
   }
 
   /* ① 拦截大段粘贴 */
@@ -165,12 +76,17 @@
       var txt = cd ? (cd.getData('text/plain') || cd.getData('text') || '') : '';
       function handle(t) {
         if (!t) { return; }
-        if (t.length < MIN_CHARS && t.split('\n').length < MIN_LINES) { return; }
-        seq += 1;
-        var id = 'p' + seq, mark = label(t);
-        store[id] = { text: t, mark: mark };
-        log('fold:' + t.length);
-        insert(mark);
+        if (FOLD) {
+          if (t.length < MIN_CHARS && t.split('\n').length < MIN_LINES) { insertTextChunked(t); return; }
+          seq += 1;
+          var id = 'p' + seq, mark = label(t);
+          store[id] = { text: t, mark: mark };
+          log('fold:' + t.length);
+          insert(mark);
+        } else {
+          log('chunk-paste:' + t.length);
+          insertTextChunked(t);
+        }
       }
       if (txt) {
         e.preventDefault();
@@ -209,7 +125,7 @@
           if (!it.mark) { continue; }
           var i = s.indexOf(it.mark);
           if (i < 0) { continue; }
-          if (pos >= 0 && (pos < i || pos > i + it.mark.length)) { continue; }
+          if (pos > 0 && (pos < i || pos > i + it.mark.length)) { continue; }
           var mark = it.mark, text = it.text, n = 0;
           it.mark = null;
           (function tryExpand() {
@@ -235,6 +151,14 @@
     for (var i = 0; i < p.marks.length; i += 1) {
       var it = p.marks[i];
       if (replaceInEditor(p.ed, it.mark, it.text)) { it.mark = null; }
+    }
+    var again = pending();
+    if (again.marks.length && again.ed) {                 /* 第二轮：内容可能刚被回滚 */
+      var ed2 = again.ed;
+      var txt = val(ed2);
+      for (var j = 0; j < again.marks.length; j += 1) { txt = txt.split(again.marks[j].mark).join(again.marks[j].text); }
+      setAll(ed2, txt, 10);
+      if (pending().marks.length === 0) { return true; }
     }
     return pending().marks.length === 0;
   }
