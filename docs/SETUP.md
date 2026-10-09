@@ -1,4 +1,8 @@
 # 安装与配置
+> **中文**：安装与配置：代理、密钥、开机自启、Tailscale。
+>
+> **English**: Install & configure: proxy, capability key, autostart, Tailscale.
+
 
 本仓库有三层，**可以只用其中一层或两层**（见 `ARCHITECTURE.md` 的对照表）。
 

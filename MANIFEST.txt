@@ -1,16 +1,16 @@
 DSH Mobile Proxy Agent -- 开源库文件清单
 作者: yuxiaole_awa  https://github.com/yuxiaole-bili
 仓库: https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent
-版本: v0.2.1
-更新时间: 2026-10-09 19:31:06
-文件数: 128   总大小: 14.29 MB
+版本: v0.2.2
+更新时间: 2026-10-09 19:44:16
+文件数: 135   总大小: 15.20 MB
 SIZE        MD5(10)     PATH
 ------------------------------------------------------------------------
        110  0b9c616b80  .gitattributes
        397  5576f0b19a  .gitignore
       3023  fedafc5f26  CHANGELOG.md
       1104  30bc3f2a0d  LICENSE
-     21505  62c36ec4ea  README.md
+     15796  9da5c7337c  README.md
       2666  5ada884191  debug.keystore
       2628  f42e190f16  .github/workflows/android.yml
       1804  ac7175c45f  .github/workflows/release.yml
@@ -36,15 +36,22 @@ SIZE        MD5(10)     PATH
     886207  04d7f8d43b  appassets/ca2793f472fcb86c.js
     801934  fc1b058ddc  appassets/fc4b02af2b8f2500.js
       4257  5aee55e4b3  appassets/index.json
-      5601  2459fe4663  docs/ARCHITECTURE.md
-      3098  21810010de  docs/PENTEST.md
-     12229  4dfdaf8f37  docs/PLUGIN.md
-      4559  59985f7bbd  docs/PUBLISH.md
-      2278  b87dfe3b79  docs/SECURITY.md
-      4587  3dc5f56235  docs/SETUP.md
-      2116  9f1bd6751a  docs/USE-IOS.md
+      5792  b93bfcbc4e  docs/ARCHITECTURE.md
+      3279  baddaaf664  docs/PENTEST.md
+     12375  163c92f9ec  docs/PLUGIN.md
+      4753  697793aceb  docs/PUBLISH.md
+      2439  4b8e8732d6  docs/SECURITY.md
+      4750  1f22829dc3  docs/SETUP.md
+      2318  bd44b368a8  docs/USE-IOS.md
+     69400  dead30dc3a  docs/screenshots/feature-bottom-panel.png
+    210378  c42b2bd593  docs/screenshots/feature-file-preview.png
+     38617  ec54a7e018  docs/screenshots/feature-header.png
+     31597  c3251b1053  docs/screenshots/feature-lite.png
+     49976  dad41dbaa1  docs/screenshots/feature-menu.png
+    176876  bbf1a6f69a  docs/screenshots/feature-settings.png
+    144160  41663eea1d  docs/screenshots/feature-sidebar.png
+    412226  23111fcca4  docs/screenshots/hero.png
      94956  0cad81c3ee  docs/screenshots/overview-launcher.png
-    176189  598fdda47d  docs/screenshots/overview-settings.png
       5483  072a76b674  plugin/README.md
       9457  d51ebe0e62  plugin/client.js
         60  db0b7ae285  plugin/cordis.patch.yml

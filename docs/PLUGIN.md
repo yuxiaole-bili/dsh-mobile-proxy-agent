@@ -1,4 +1,8 @@
 # DSH 插件机制（从真实安装里读出来的）
+> **中文**：DSH 插件契约与挂载方式（dsh-mobile-kit）。
+>
+> **English**: DSH plugin contract and how to mount it (dsh-mobile-kit).
+
 
 > 结论：**能做成插件**，而且我们已经在 `plugin/` 里做了一个可用的（host + client 两半边）。
 > 下面每条都来自本机真实文件，不是推测。

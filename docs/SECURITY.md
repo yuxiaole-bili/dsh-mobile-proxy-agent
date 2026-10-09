@@ -1,4 +1,8 @@
 # 安全说明（Security）
+> **中文**：凭据处理、脱敏规则、资源上限与自查方法。
+>
+> **English**: Credential handling, redaction rules, resource limits, self-audit.
+
 
 本仓库是**脱敏镜像**，线上运行目录（`%LOCALAPPDATA%\dsh-gui-forward`）才是原始文件。
 每次同步都会跑一遍脱敏与复核，规则与结果如下。

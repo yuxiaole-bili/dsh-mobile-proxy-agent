@@ -1,4 +1,8 @@
 # 网页版使用方式（iPhone / iPad / 任意浏览器）
+> **中文**：苹果用户网页版用法：完整版/轻量版地址、添加到主屏幕、注意事项。
+>
+> **English**: Web usage for iPhone/iPad: full & lite URLs, Add to Home Screen, caveats.
+
 
 **不需要装 APK**。手机浏览器直接开代理地址就是完整版 DSH，交互层（消重叠、折叠按钮、
 长按展开、覆盖层 ✕、代码高亮）对 iOS Safari 同样生效。

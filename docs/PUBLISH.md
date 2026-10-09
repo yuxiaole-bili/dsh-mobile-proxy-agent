@@ -1,4 +1,8 @@
 # 发布清单（开源前逐项确认）
+> **中文**：开源发布清单：必过检查、绝不入库清单、打标签发布、APK 与签名。
+>
+> **English**: Release checklist: gates, never-commit list, tagging, APK & signing.
+
 
 ## 一、必须先过（自动化）
 ```powershell

@@ -1,4 +1,8 @@
 # 架构与移植对照
+> **中文**：架构与数据流：鉴权、文件 API、API 缓存、热补丁注入的细节。
+>
+> **English**: Architecture & data flow: auth, file API, API cache, hot-patch injection.
+
 
 ## 1. 为什么要三层，而不是"全做成插件"
 
