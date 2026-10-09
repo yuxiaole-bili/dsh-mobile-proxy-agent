@@ -13,7 +13,7 @@ const BASE = process.argv[2];
 const OUT = process.argv[3];
 const IMG = process.argv[4] || "t54_ortho3b.png";
 const TXT = process.argv[5] || "LESSONS.md";
-const UA = "Mozilla/5.0 (Linux; Android 12; ANA-AN00 Build/HUAWEIANA-AN00; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/114.0.5735.196 Mobile Safari/537.36";
+const UA = "Mozilla/5.0 (Linux; Android 12; Pixel 6 Build/Pixel 6; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 移动浏览器.0.5735.196 Mobile Safari/537.36";
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "edge-chipv2-"));
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, "--window-size=360,780", "about:blank"], { stdio: "ignore" });

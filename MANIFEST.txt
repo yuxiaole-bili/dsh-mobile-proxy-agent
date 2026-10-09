@@ -2,15 +2,15 @@ DSH Mobile Proxy Agent -- 开源库文件清单
 作者: yuxiaole_awa  https://github.com/yuxiaole-bili
 仓库: https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent
 版本: v0.2.1
-更新时间: 2026-10-08 23:07:57
-文件数: 127   总大小: 14.28 MB
+更新时间: 2026-10-09 19:31:06
+文件数: 128   总大小: 14.29 MB
 SIZE        MD5(10)     PATH
 ------------------------------------------------------------------------
        110  0b9c616b80  .gitattributes
        397  5576f0b19a  .gitignore
       3023  fedafc5f26  CHANGELOG.md
       1104  30bc3f2a0d  LICENSE
-     18998  d9e13395ad  README.md
+     21505  62c36ec4ea  README.md
       2666  5ada884191  debug.keystore
       2628  f42e190f16  .github/workflows/android.yml
       1804  ac7175c45f  .github/workflows/release.yml
@@ -36,48 +36,49 @@ SIZE        MD5(10)     PATH
     886207  04d7f8d43b  appassets/ca2793f472fcb86c.js
     801934  fc1b058ddc  appassets/fc4b02af2b8f2500.js
       4257  5aee55e4b3  appassets/index.json
-      5599  cffda93ca2  docs/ARCHITECTURE.md
+      5601  2459fe4663  docs/ARCHITECTURE.md
       3098  21810010de  docs/PENTEST.md
-     12223  33c7380d99  docs/PLUGIN.md
+     12229  4dfdaf8f37  docs/PLUGIN.md
       4559  59985f7bbd  docs/PUBLISH.md
       2278  b87dfe3b79  docs/SECURITY.md
-      4585  47204488f0  docs/SETUP.md
+      4587  3dc5f56235  docs/SETUP.md
       2116  9f1bd6751a  docs/USE-IOS.md
      94956  0cad81c3ee  docs/screenshots/overview-launcher.png
     176189  598fdda47d  docs/screenshots/overview-settings.png
-      5482  156600ee96  plugin/README.md
-      9458  5b33dbb5f3  plugin/client.js
+      5483  072a76b674  plugin/README.md
+      9457  d51ebe0e62  plugin/client.js
         60  db0b7ae285  plugin/cordis.patch.yml
       4472  cdcf235b1a  plugin/index.js
-      1551  872171cf3f  plugin/package.json
+      1549  d96a6ca235  plugin/package.json
        698  2822b868c9  proxy/forward_watch.py
      12336  60d8547732  proxy/mobile.html
-    165935  dd85972f93  proxy/proxy.py
+    165926  2e906ff9fc  proxy/proxy.py
        745  ef26a69877  proxy/restart_svc.cmd
        601  d093f0cbaa  proxy/svc_tunnel.ps1
      20544  4f13d899ca  proxy/hotpatch/00-base.css
-     11706  c0d29850da  proxy/hotpatch/10-base.js
+      5356  738cd345e0  proxy/hotpatch/05-i18n.js
+     11728  d9d11425d8  proxy/hotpatch/10-base.js
       3757  fedc12b563  proxy/hotpatch/30-rboverlay.js
       3757  fedc12b563  proxy/hotpatch/30-rboverlay.js.disabled.20261006-142438
      12248  8f297fc5be  proxy/hotpatch/40-panels.js
      12248  8f297fc5be  proxy/hotpatch/40-panels.js.disabled.20261006-124252
-      4490  2119ddd36f  proxy/hotpatch/45-chipview.js
+      4527  7f1ad532d9  proxy/hotpatch/45-chipview.js
      30223  c49e3cda28  proxy/hotpatch/50-fileview.js
       5233  c2135e450f  proxy/hotpatch/60-autocollapse.js
       7138  cd8e8163df  proxy/hotpatch/70-voiceselfheal.js
       3683  5006729891  proxy/hotpatch/80-diag.js.disabled.20261006-142438
-     23738  007393bbcf  proxy/hotpatch/90-uiux.js
-     11629  22b67ddb17  proxy/hotpatch/README-fileview.md
+     23905  861181b571  proxy/hotpatch/90-uiux.js
+     11631  8e0bc1bc97  proxy/hotpatch/README-fileview.md
       3865  954fc8035e  proxy/hotpatch/README.md
       5291  396a6aba11  tools/audit_proxy_log.py
-      8471  065d0292e8  tools/chipview_test.js
+      8468  63c9cfe4eb  tools/chipview_test.js
       2554  0e548a7ef0  tools/compare_bundles.py
       2695  c8fb162a4b  tools/create_attacker_kvm.sh
       9273  001b731fc4  tools/ctf_10_rounds.py
-      5398  3851b7b6c0  tools/ctx_btn_verify.js
+      5395  1de497d546  tools/ctx_btn_verify.js
       2144  366f307e9a  tools/diag_hash_table.py
       2182  67a04c8838  tools/diag_mobilekit_load.py
-      7128  984653eb83  tools/filechip_probe.js
+      7125  0329a6ebbd  tools/filechip_probe.js
       3370  35f92740e4  tools/final_security_check.py
       4516  b5625eca1c  tools/finalize_chipview.py
       4359  fc99d04d8d  tools/finalize_highlight.py
@@ -87,49 +88,49 @@ SIZE        MD5(10)     PATH
       2433  a69710552b  tools/fix_mobilekit_row.py
        865  4d26fe99c7  tools/fix_patch_script.py
       5408  db3d651fbb  tools/healthcheck_mobile.ps1
-     10816  6e68911506  tools/highlight_test.js
+     10813  5757163738  tools/highlight_test.js
      10743  f07719a8e0  tools/hl_block.js
-      3554  12e6253aaa  tools/hot_errors_probe.js
-      7446  5123f93c53  tools/inline_preview_test.js
-      1958  5aaca6183f  tools/install_mobilekit.py
-      5940  ea2edd73d6  tools/memory_probe.js
-      7291  33e3d4ebd2  tools/mobile_flow.js
-      6460  544e89383c  tools/overlay_all_verify.js
-      7814  d355d51b80  tools/panels_test.js
+      3551  e1a967fdf2  tools/hot_errors_probe.js
+      7443  d4f3e7c186  tools/inline_preview_test.js
+      1957  8bc7e59f60  tools/install_mobilekit.py
+      5937  de22abd4e5  tools/memory_probe.js
+      7288  502495fb43  tools/mobile_flow.js
+      6457  82917319b1  tools/overlay_all_verify.js
+      7811  0e676c482e  tools/panels_test.js
       4226  cc2f694a33  tools/patch_fileview_highlight.py
       2488  d1fbb3c563  tools/patch_fileview_textreturn.py
       2455  39e1f20d4b  tools/patch_proxy_listen.py
       4344  4b4534417b  tools/patch_proxy_relpath.py
       4223  801771778d  tools/patch_proxy_reqbuf.py
       6079  f8616a445c  tools/pentest_proxy.py
-      6418  4d821a4715  tools/perf_probe.js
+      6415  e8f6d94d50  tools/perf_probe.js
       2704  188d0c94e2  tools/phone_traffic.py
-      8008  dbf3b66125  tools/plugin_verify.js
+      8011  919bc677f7  tools/plugin_verify.js
       2913  3624f99b4f  tools/provision_attacker_rootless.sh
-      6549  c14c1c7c82  tools/rail_hit_probe.js
-      7957  43973aac9e  tools/rboverlay_regression.js
+      6546  047b6ca8e6  tools/rail_hit_probe.js
+      7954  8d5c32f2f8  tools/rboverlay_regression.js
       2477  8b283e0ac6  tools/red_team_from_server.ps1
-      6122  ff0008da4a  tools/repro_preview.js
+      6119  7e4eaedac0  tools/repro_preview.js
       2857  66a3325034  tools/resolve_diag_hash.py
-      6563  2b5261feca  tools/rightbar_close_test.js
-      6603  5b9f752d33  tools/rightbar_fix_try.js
-      6357  0fbef0ad8b  tools/rightbar_probe.js
-      7659  50926e076c  tools/rightbar_verify.js
+      6560  f15a200019  tools/rightbar_close_test.js
+      6600  48940bec9b  tools/rightbar_fix_try.js
+      6354  23ee15b13a  tools/rightbar_probe.js
+      7656  c79cb90b2e  tools/rightbar_verify.js
       5717  43c49ad0cb  tools/security_audit.py
       2518  2245a5c050  tools/slow_upload_test.py
       2234  d4305fc2bd  tools/test_mobilekit_client.py
-      5261  022a912b5f  tools/test_mobilekit_e2e.js
+      5258  bd09b0062c  tools/test_mobilekit_e2e.js
       1739  db16a6395a  tools/test_plugin_hub.py
       2759  102b5c4712  tools/test_plugin_routes.py
       5114  0962504155  tools/test_plugins.py
-      8407  8ef43b0ad3  tools/ui_fix_verify.js
-      6434  19ef24afd4  tools/ui_layout_probe.js
-      7492  883088bcc2  tools/ui_layout_probe2.js
-      7701  d78722cf1a  tools/ui_layout_probe3.js
-      5805  e614c6a4c5  tools/ui_layout_probe4.js
-     11369  0327bd4808  tools/uiux_verify.js
-      7664  1f28172421  tools/usage_panel_verify.js
-     11049  c4b7f2d276  tools/verify_takeover.py
+      8404  48897f99d8  tools/ui_fix_verify.js
+      6431  112ed0d00c  tools/ui_layout_probe.js
+      7489  5eaba3e87c  tools/ui_layout_probe2.js
+      7698  6893dad5fb  tools/ui_layout_probe3.js
+      5802  9d621ccb41  tools/ui_layout_probe4.js
+     11366  3ea2892d49  tools/uiux_verify.js
+      7661  0b6593e47e  tools/usage_panel_verify.js
+     11046  0247860908  tools/verify_takeover.py
       2874  ab148ae87e  tools/vm_recon.ps1
-      6187  0f170a8629  tools/voice_probe.js
-      5748  d1ec492473  tools/voice_reconnect.js
+      6184  7b863fed60  tools/voice_probe.js
+      5745  30a9d100ab  tools/voice_reconnect.js

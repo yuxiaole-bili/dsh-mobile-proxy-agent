@@ -229,7 +229,7 @@
         // 通用兜底：有可见的 dialog/modal 或打开的抽屉就关掉它
         var d = document.querySelector('[role="dialog"]:not([hidden])');
         if (d) {
-          var btn = d.querySelector('[aria-label*="lose"],[aria-label*="关闭"],button');
+          var btn = d.querySelector('[aria-label*="lose"],[aria-label*="Close"],[aria-label*="关闭"],button');
           if (btn) { btn.click(); return true; }
           return false;
         }

@@ -110,7 +110,7 @@ immediately; without HMR, the running composition remains until restart."* —�
 | 半边 | 做了什么 |
 |---|---|
 | host（`index.js`） | `export { apply, inject, name }`，`inject: ['webServer']`；注册两条只读路由：`GET /mobile-kit/health`（探活）与 `GET /mobile-kit/info`（**本机非回环 IPv4 列表**，仅本机/私网/Tailscale peer 可读）—— 手机端的"局域网/VPN 双模"可以直接问它要候选地址，不用再硬编码网段 |
-| client（`client.js`） | Chrome 114 缺的 API 一批（`Promise.withResolvers`、`AbortSignal.any/timeout`、`Object/Map.groupBy`、`URL.canParse/parse`、`Array.fromAsync`、`findLast/Index`、`toSorted/toReversed`、`structuredClone`、`Set.union/intersection/difference`、`crypto.randomUUID`）+ 两条真机验证过的移动端布局修复（`_panel` 让出 56px 图标栏、表头按钮不换行），全局限定在 `@media (max-width:820px)`；样式经 `ctx.effect` 注册，禁用插件即回收 |
+| client（`client.js`） | 较旧内核 缺的 API 一批（`Promise.withResolvers`、`AbortSignal.any/timeout`、`Object/Map.groupBy`、`URL.canParse/parse`、`Array.fromAsync`、`findLast/Index`、`toSorted/toReversed`、`structuredClone`、`Set.union/intersection/difference`、`crypto.randomUUID`）+ 两条真机验证过的移动端布局修复（`_panel` 让出 56px 图标栏、表头按钮不换行），全局限定在 `@media (max-width:820px)`；样式经 `ctx.effect` 注册，禁用插件即回收 |
 
 ### 验证（`tools/` 之外的 `plugin_verify.js`，**16/16 PASS**）
 
@@ -120,7 +120,7 @@ PASS  host.js 可被 import
 PASS  导出 apply/inject/name  | name=mobile-kit inject=["webServer"]
 PASS  注册了两条路由  | ["exact /mobile-kit/health","exact /mobile-kit/info"]
 PASS  GET /mobile-kit/info 返回本机 IPv4 列表  | addresses=[Radmin VPN 26.36.62.139, 以太网 <PC-LAN-IP>, WLAN <SRV-LAN-IP>]
-== B. client 半边（无头模拟 Chrome 114：先删 withResolvers / findLast）==
+== B. client 半边（无头模拟 较旧内核：先删 withResolvers / findLast）==
 PASS  client.js 注册到 __ModuleLoader__，id 与包名一致
 PASS  factory + apply() 不抛异常
 PASS  polyfill 生效：withResolvers / AbortSignal.any 回来了
@@ -198,4 +198,4 @@ PASS  移动端 CSS 已注入；console 无报错
 
 四个文件已按官方模板重写，`tools/plugin_verify.js` **23/23 PASS**：
 清单字段、host 导出形状、`ctx.effect` 注册、路由真跑、peer 鉴权（本机 200 / 公网 403 / Tailscale 200）、
-client 在"先删 `withResolvers`/`findLast`"的 Chrome 114 条件下 polyfill 复原 + CSS 注入 + 0 报错。
+client 在"先删 `withResolvers`/`findLast`"的 较旧内核 条件下 polyfill 复原 + CSS 注入 + 0 报错。

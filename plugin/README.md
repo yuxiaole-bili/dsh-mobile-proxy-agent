@@ -1,6 +1,6 @@
 # dsh-mobile-kit（DSH 插件）
 
-让 DSH 的网页端在**老手机**上可用的插件：Chrome 114 缺的 API 补齐 + 两条真机验证过的移动端布局修复 +
+让 DSH 的网页端在**手机**上可用的插件：较旧内核 缺的 API 补齐 + 两条真机验证过的移动端布局修复 +
 给手机壳用的"局域网/VPN 候选地址"接口。
 
 > 这是 [dsh-mobile-kit](../README.md) 的插件半边。仓库里还有 `proxy/`（反向代理，能补插件补不了的网络层问题）
@@ -51,7 +51,7 @@ node ../tools/plugin_verify.js      # 23/23 PASS
 ```
 
 覆盖：清单字段、host 导出形状、`ctx.effect` 注册、路由真跑、peer 鉴权（本机 200 / 公网 403 / Tailscale 200）、
-client 在"先删 `withResolvers`/`findLast`"的 Chrome 114 条件下 polyfill 复原 + CSS 注入 + 0 报错。
+client 在"先删 `withResolvers`/`findLast`"的 较旧内核 条件下 polyfill 复原 + CSS 注入 + 0 报错。
 
 ## 已知边界
 

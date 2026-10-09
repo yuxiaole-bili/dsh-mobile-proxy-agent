@@ -20,7 +20,7 @@ PLUGIN = r"<REPO>/plugin"
 TS = time.strftime("%Y%m%d-%H%M%S")
 
 ROW = """
-# dsh-mobile-kit：手机端工具包（Chrome-114 polyfill + 移动端布局 + /mobile-kit 接口）
+# dsh-mobile-kit：手机端工具包（旧内核 polyfill + 移动端布局 + /mobile-kit 接口）
 # 用绝对路径挂载 —— 本机无外网、不动 node_modules；删掉这一段即可卸载。
 - insert:
     - id: mobile-kit

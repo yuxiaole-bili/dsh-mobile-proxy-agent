@@ -61,7 +61,7 @@
   function paintToggle() {
     if (!btn) { return; }
     btn.textContent = isMin() ? "⌃" : "⌄";
-    btn.title = isMin() ? "展开底部用量" : "收起底部用量";
+    btn.title = isMin() ? W.__dshI18n.pick("展开底部用量", "Expand usage") : W.__dshI18n.pick("收起底部用量", "Collapse usage");
     btn.setAttribute("aria-label", btn.title);
   }
 
@@ -450,8 +450,8 @@
       ctxBtn.type = "button";
       ctxBtn.setAttribute("data-dsh-uix", "ctx-close");
       var _tt = overlayTitle();
-      ctxBtn.setAttribute("aria-label", _tt ? ("关闭 " + _tt) : "关闭面板");
-      if (_tt) { ctxBtn.title = "关闭 " + _tt; }
+      ctxBtn.setAttribute("aria-label", _tt ? (W.__dshI18n.pick("关闭", "Close") + " " + _tt) : W.__dshI18n.pick("关闭面板", "Close panel"));
+      if (_tt) { ctxBtn.title = W.__dshI18n.pick("关闭", "Close") + " " + _tt; }
       ctxBtn.textContent = "✕";
       ctxBtn.style.cssText = "position:fixed;right:10px;top:44px;width:34px;height:34px;z-index:2147483646;" +
         "border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(20,20,26,.82);" +

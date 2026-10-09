@@ -1,10 +1,10 @@
 # dsh-mobile-proxy-agent
 
-**让 DeepSeek Harness（DSH）在"老手机 + 慢链路"上真正可用。**
+**让 DeepSeek Harness（DSH）在"手机 + 慢链路"上真正可用。**
 
-DSH 的网页端是给桌面浏览器写的。放到一台 2020 年的安卓手机（华为 P40，WebView 内核 **Chrome/114**）上，通过**明文 HTTP + Tailscale/局域网**访问时，会连着踩一串坑。这个仓库把这些坑一条条堵上，并且**不重装 APK、不改 DSH 本体** —— 改一个 CSS/JS 文件刷新即生效。
+DSH 的网页端是给桌面浏览器写的。放到一台 手机（移动浏览器）上，通过**明文 HTTP + Tailscale/局域网**访问时，会连着踩一串坑。这个仓库把这些坑一条条堵上，并且**不重装 APK、不改 DSH 本体** —— 改一个 CSS/JS 文件刷新即生效。
 
-纯 Python 3 标准库 + 少量前端脚本，无数据库、无外部服务依赖。已在华为 P40（视口 360×780）实机验证。
+纯 Python 3 标准库 + 少量前端脚本，无数据库、无外部服务依赖。已在手机（视口 360×780）实机验证。
 
 > **当前版本 v0.2.1** · 作者 [@yuxiaole_awa](https://github.com/yuxiaole-bili) · 仓库 <https://github.com/yuxiaole-bili/dsh-mobile-proxy-agent>
 >
@@ -14,7 +14,7 @@ DSH 的网页端是给桌面浏览器写的。放到一台 2020 年的安卓手�
 ![启动页](docs/screenshots/overview-launcher.png)
 
 > **English summary** — A toolkit that makes the DeepSeek Harness web UI usable on an old
-> Android phone (Huawei P40 / Chrome 114 WebView) over a plain-HTTP Tailscale/LAN link.
+> Android phone (手机 / 移动浏览器) over a plain-HTTP Tailscale/LAN link.
 > Three layers: a **DSH plugin** (the proper way: polyfills/UI + helper endpoints), an optional
 > **reverse proxy** (works with zero DSH-side change, and covers what a browser-side plugin
 > cannot), and an optional **Android shell** (native bridges for voice recording and
@@ -27,7 +27,7 @@ DSH 的网页端是给桌面浏览器写的。放到一台 2020 年的安卓手�
 
 | 现象 | 根因 |
 |---|---|
-| 完整版**打不开**／白屏 | Chrome 114 没有 `Promise.withResolvers`、`AbortSignal.any` 等新 API |
+| 完整版**打不开**／白屏 | 较旧内核 没有 `Promise.withResolvers`、`AbortSignal.any` 等新 API |
 | 手机点麦克风只弹"语音识别尚未就绪" | 明文 HTTP **不是安全上下文** → `navigator.mediaDevices` 压根不存在 |
 | 页面挤、抽屉盖住正文、**按键重叠** | 桌面栅格 + 侧栏抽屉在 360 px 视口下的布局问题 |
 | 会话列表一次几百 KB | `session/list` 全量返回 78 万字节 |
@@ -211,7 +211,7 @@ D:\code\dsh-android\build.ps1     # 改脚本里的 $JDK/$SDK 路径；离线构
 
 | 能力 | 证据 |
 |---|---|
-| 手机（Chrome 114 内核）能打开完整版 | 无头 Edge 模拟"先删 `Promise.withResolvers`"→ 0 控制台错误 |
+| 手机（较旧内核 内核）能打开完整版 | 无头 Edge 模拟"先删 `Promise.withResolvers`"→ 0 控制台错误 |
 | 只读文件接口 | 54/54 协议验收（含 9 种越权路径全 403、MIME、`nosniff`、`no-store`） |
 | "点开会话自动收抽屉" | 20/20 无头用例（含"点非会话行不误收"的反例） |
 | 用手机 App 打开文件 | 原生 `openwith`：下载 → `content://` → 系统选择器；headless 验证 RPC 参数 |
@@ -264,7 +264,10 @@ D:\code\dsh-android\build.ps1     # 改脚本里的 $JDK/$SDK 路径；离线构
 |---|---|
 | ![启动页](docs/screenshots/overview-launcher.png) | ![设置页](docs/screenshots/overview-settings.png) |
 
-> 截图来自实机（华为 P40），已裁掉会话正文与服务器地址等个人信息。
+> 截图来自实机（手机），已裁掉会话正文与服务器地址等个人信息。
+
+> **界面语言**：手机端交互层（折叠按钮、文件预览、覆盖层关闭等）会**自动跟随 DSH 的语言**
+> （读 `<html lang>`）；也可以强制指定：地址后加 `?lang=en` 或 `?lang=zh`（会记住选择）。
 
 ## 网页版（iPhone / iPad）
 
@@ -312,6 +315,59 @@ python tools\security_audit.py
 - APK 是 WebView 壳（`android/` 为源码摘录，不含签名材料）
 - iOS 用键盘自带听写，不走原生语音通道
 - 设置页整页化、覆盖层 ✕ 等是针对**当前 DSH 版本的类名**做的适配，DSH 升级后可能需要同步
+
+---
+
+## English
+
+**dsh-mobile-proxy-agent** makes DeepSeek Harness (DSH) usable on a phone. It is a small
+reverse proxy plus a hot-patch channel: no DSH modification, no APK reinstall — edit a
+CSS/JS file and the phone picks it up on refresh.
+
+### What it gives you
+
+- **Mobile reverse proxy** (`proxy/proxy.py`, default `0.0.0.0:19390`): capability-key auth,
+  file API (`/f` `/d` `/dl`), API caching, and injection of the hot-patch channel
+- **Hot-patch channel** (`proxy/hotpatch/`): CSS/JS re-read per request — change a file, refresh, done
+- **Mobile UI layer**: removes overlapping buttons, adds a usage-collapse button, long-press
+  to expand, swipe gestures, a generic overlay close button, and a full-screen settings page
+- **File preview with syntax highlighting**: tapping a file chip opens it inside the app
+  (images / PDF / code) instead of handing it to a third-party app
+- **Lite version** at `/m` (message + send only) for slow links
+- **Works with any client**: Android WebView shell, iOS Safari, desktop browsers
+
+### Quick start
+
+```bash
+python proxy/proxy.py                              # on the machine running DSH
+# then open on the phone:
+#   http://<PC-IP>:19390/?k=<cap.key>              full version
+#   http://<PC-IP>:19390/m                         lite version
+```
+
+iPhone / iPad: just open the URL in Safari and use *Add to Home Screen*; no APK needed.
+See [docs/USE-IOS.md](docs/USE-IOS.md).
+
+### Language
+
+The mobile UI layer follows DSH's language automatically (`<html lang>`): switch DSH to
+English and the injected buttons, file preview and settings shells follow.
+You can also force it: append `?lang=en` (or `?lang=zh`) — the choice is remembered.
+
+### Security
+
+> ⚠️ Single capability key only: **whoever holds the key can run commands on the machine**
+> through DSH's agent tools. Do not expose it to the public internet — keep it on a trusted
+> LAN or inside Tailscale. See [docs/SECURITY.md](docs/SECURITY.md) and the 10-round CTF
+> record in [docs/PENTEST.md](docs/PENTEST.md).
+
+### Docs
+
+[SETUP](docs/SETUP.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [PLUGIN](docs/PLUGIN.md) ·
+[SECURITY](docs/SECURITY.md) · [PENTEST](docs/PENTEST.md) · [PUBLISH](docs/PUBLISH.md) ·
+[USE-IOS](docs/USE-IOS.md)
+
+MIT © 2026 [yuxiaole_awa](https://github.com/yuxiaole-bili)
 
 ## 许可
 

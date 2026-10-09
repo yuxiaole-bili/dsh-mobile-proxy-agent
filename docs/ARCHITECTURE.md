@@ -6,7 +6,7 @@ DSH 插件跑在 **DSH 自己的进程 / 页面**里。这决定了它能碰什�
 
 | 问题 | 插件能解吗 | 原因 |
 |---|---|---|
-| Chrome 114 缺 `Promise.withResolvers` / `AbortSignal.any` | ✅ | 页面里补 polyfill 就行 |
+| 较旧内核 缺 `Promise.withResolvers` / `AbortSignal.any` | ✅ | 页面里补 polyfill 就行 |
 | 页面布局挤、抽屉盖正文 | ✅ | 注入 CSS |
 | 明文 HTTP 下没有 `navigator.mediaDevices` | ⚠️ 半 | 插件可以**伪造** `getUserMedia`，但真实录音要么靠原生桥，要么靠宿主提供 |
 | 会话列表 78 万字节 / 首屏 500 条 | ✅（服务端插件） | 在 RPC 层改请求与响应 |

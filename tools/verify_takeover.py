@@ -20,9 +20,9 @@ VIEW_HOST = "<TAILSCALE-IP>:19390"
 APK = os.path.join(os.environ["LOCALAPPDATA"], "dsh-gui-forward", "DSH.apk")
 KEYFILE = os.path.join(os.environ["LOCALAPPDATA"], "dsh-gui-forward", "cap.key")
 ROOT = r"<WORKSPACE>"
-UA_MOBILE = ("Mozilla/5.0 (Linux; Android 12; ANA-AN00 Build/HUAWEIANA-AN00; wv) "
+UA_MOBILE = ("Mozilla/5.0 (Linux; Android 12; Pixel 6 Build/Pixel 6; wv) "
              "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 "
-             "Chrome/114.0.5735.196 Mobile Safari/537.36")
+             "移动浏览器.0.5735.196 Mobile Safari/537.36")
 APK_SHA_EXPECTED = os.environ.get("DSH_APK_SHA", "")   # 可选：钉住你自己的构建产物
 
 KEY = open(KEYFILE, encoding="utf-8").read().strip()

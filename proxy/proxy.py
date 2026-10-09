@@ -38,8 +38,8 @@ LISTEN = (os.environ.get("DSH_LISTEN_HOST", "0.0.0.0"),
 TARGET = ("127.0.0.1", 19387)
 
 # --- ES2019 degraded plugin bundles -------------------------------------------------
-# The /plugins/?? combo bundles are several MB of modern JS. The Huawei P40 WebView
-# (Chrome 114) reports "bundle script <url> failed to load" for them, so the phone keeps
+# The /plugins/?? combo bundles are several MB of modern JS. The 手机 WebView
+# (较旧内核) reports "bundle script <url> failed to load" for them, so the phone keeps
 # re-downloading ~5 MB forever. DSH_ES2019_DIR holds esbuild --target=es2019 copies of
 # exactly the same files that are preinstalled in the APK (appassets/index.json), so the
 # APK and the proxy serve byte-identical bodies. Set DSH_ES2019=0 to disable.
@@ -1296,7 +1296,7 @@ MOBILE_VIEWPORT = '<meta name="viewport" content="width=device-width,initial-sca
 _HEAD_OPEN_RE = re.compile(rb"<head[^>]*>", re.I)
 
 # Missing modern APIs in older WebViews. Must run BEFORE any app script.
-# Huawei P40 (WebView Chrome/114) threw "Promise.withResolvers is not a function" (Chrome 119+).
+# 手机 (移动浏览器) threw "Promise.withResolvers is not a function" (Chrome 119+).
 MOBILE_POLYFILL = """<script id="dsh-polyfill">(function(){
 var P=Promise;
 if(typeof P.withResolvers!=="function"){P.withResolvers=function(){var r,j,p=new P(function(a,b){r=a;j=b;});return{promise:p,resolve:r,reject:j};};}

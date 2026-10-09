@@ -15,7 +15,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------
-     * Chrome-114 polyfills. A 2020 phone WebView is missing APIs the desktop
+     * 旧内核 polyfills. A 2020 phone WebView is missing APIs the desktop
      * UI calls unconditionally — missing Promise.withResolvers / AbortSignal.any
      * is what stops the full UI from booting at all. Additive and idempotent,
      * so they need no cleanup.

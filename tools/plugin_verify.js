@@ -1,6 +1,6 @@
 // 验证 dsh-mobile-kit 插件两半边：
 //  A) host 半边：Node 动态 import + 假 ctx，检查 export 形状、路由注册、handler 真跑
-//  B) client 半边：无头浏览器里模拟 Chrome 114（先删 withResolvers/findLast）+ 假 __ModuleLoader__
+//  B) client 半边：无头浏览器里模拟 较旧内核（先删 withResolvers/findLast）+ 假 __ModuleLoader__
 const { spawn } = require("child_process");
 const fs = require("fs");
 const http = require("http");
@@ -61,7 +61,7 @@ async function verifyHost() {
 }
 
 async function verifyClient() {
-  console.log("== B. client 半边（无头模拟 Chrome 114）==");
+  console.log("== B. client 半边（无头模拟 较旧内核）==");
   const src = fs.readFileSync(CLIENT, "utf8");
   const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
   const PORT = 9243;
@@ -85,14 +85,14 @@ async function verifyClient() {
     };
     await new Promise((r) => { ws.onopen = r; });
     await send("Page.enable"); await send("Runtime.enable");
-    await send("Emulation.setUserAgentOverride", { userAgent: "Mozilla/5.0 (Linux; Android 12; ANA-AN00 Build/HUAWEIANA-AN00; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/114.0.5735.196 Mobile Safari/537.36" });
+    await send("Emulation.setUserAgentOverride", { userAgent: "Mozilla/5.0 (Linux; Android 12; Pixel 6 Build/Pixel 6; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 移动浏览器.0.5735.196 Mobile Safari/537.36" });
     await send("Emulation.setDeviceMetricsOverride", { width: 360, height: 780, deviceScaleFactor: 3, mobile: true });
     const ev = async (expr) => {
       const r = await send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true });
       if (r && r.exceptionDetails) return { __error: String(r.exceptionDetails.text || "") };
       return r && r.result ? r.result.value : null;
     };
-    // 模拟 Chrome 114：删掉两个新 API，并装上假 ModuleLoader
+    // 模拟 较旧内核：删掉两个新 API，并装上假 ModuleLoader
     await ev(`(()=>{try{Object.defineProperty(Promise,'withResolvers',{value:undefined,writable:true,configurable:true});}catch(e){}
       try{delete Array.prototype.findLast;}catch(e){}
       window.__loaded=null;

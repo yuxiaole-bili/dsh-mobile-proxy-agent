@@ -78,7 +78,7 @@ pwsh -File tools\healthcheck_mobile.ps1 -SkipHeadless # 快检
 ```
 
 七段检查：进程 / 监听 / 54 项协议验收 / 热补丁包语法 / 体积 / **手机真实流量** /
-无头渲染（模拟"先删 `Promise.withResolvers`"的 Chrome 114）。任一项不过 → 退出码 1。
+无头渲染（模拟"先删 `Promise.withResolvers`"的 较旧内核）。任一项不过 → 退出码 1。
 
 ---
 
