@@ -34,6 +34,8 @@
   }
 
   var store = {}, seq = 0;
+  var LOG = [];
+  function log(x) { LOG.push(String(x)); if (LOG.length > 40) { LOG.shift(); } }
 
   function editor() {
     var els = D.querySelectorAll('textarea,[contenteditable="true"],[contenteditable=""]');
@@ -43,7 +45,16 @@
     }
     return null;
   }
-  function isEd(ed, t) { return ed && (t === ed || ed.contains(t)); }
+  /* 粘贴/点击事件的 target 常常是外层容器而不是编辑器本身（实测 target 无类名），
+     所以判定以"当前聚焦的编辑器"为准，只在明显不相关时才拒绝。 */
+  function isEd(ed, t) {
+    if (!ed) { return false; }
+    if (t === ed || ed.contains(t)) { return true; }
+    var ae = D.activeElement;
+    if (ae && (ae === ed || ed.contains(ae))) { return true; }
+    var r = ed.getBoundingClientRect();
+    return r.width > 100 && r.height > 10;      // 编辑器可见且是页面上唯一的输入区
+  }
   function val(ed) { return (ed.value !== undefined) ? ed.value : (ed.innerText || ''); }
   function setVal(ed, s) {
     if (ed.value !== undefined) {
@@ -108,36 +119,80 @@
     } catch (e) { return false; }
   }
 
-  /* 插入标记：写入 + 校验 + 有限重试（受控组件可能回滚） */
-  function insert(ed, s) {
-    var n = 0;
-    (function tick() {
-      if (val(ed).indexOf(s) >= 0) { return; }
-      var before = val(ed);
+  /* 插入标记：每次都重新查询当前编辑器（app 可能重渲染导致旧节点游离），
+     首次写入推迟到事件派发之外，写入后校验 + 有限重试。 */
+  var pendingIns = [];
+  function flushIns() {
+    if (!pendingIns.length) { return; }
+    var ed = editor();
+    if (!ed) { return; }
+    pendingIns = pendingIns.filter(function (mark) {
+      var cur = val(ed);
+      if (cur.indexOf(mark) >= 0) { return false; }
       try { ed.focus(); } catch (e) {}
-      try { D.execCommand('insertText', false, s); } catch (e) {}
-      if (val(ed) === before) { setVal(ed, before + s); }
-      n += 1;
-      if (n < 10) { setTimeout(tick, 150); }
-    })();
+      var before = val(ed);
+      try { D.execCommand('insertText', false, mark); } catch (e) {}
+      if (val(ed) === before || val(ed).indexOf(mark) < 0) {
+        try { D.execCommand('insertHTML', false, mark.replace(/[<>&]/g, '')); } catch (e) {}
+      }
+      if (val(ed).indexOf(mark) < 0) { setVal(ed, val(ed) + mark); }
+      return val(ed).indexOf(mark) < 0;      // 还在队列里就继续重试
+    });
+  }
+  var insTimer = setInterval(function () {
+    flushIns();
+    if (!pendingIns.length) { clearInterval(insTimer); insTimer = null; }
+  }, 200);
+  function insert(mark) {
+    pendingIns.push(mark);
+    if (!insTimer) {
+      insTimer = setInterval(function () {
+        flushIns();
+        if (!pendingIns.length) { clearInterval(insTimer); insTimer = null; }
+      }, 200);
+    }
+    setTimeout(flushIns, 0);        // 事件派发结束后立刻试一次
+    setTimeout(flushIns, 60);
   }
 
   /* ① 拦截大段粘贴 */
   D.addEventListener('paste', function (e) {
     try {
       var ed = editor();
-      if (!isEd(ed, e.target)) { return; }
+      log('paste-target:' + String(e.target && e.target.className || e.target && e.target.tagName || '?').slice(0, 18));
+      if (!isEd(ed, e.target)) { log('reject:no-editor'); return; }
       var cd = e.clipboardData || W.clipboardData;
       var txt = cd ? (cd.getData('text/plain') || cd.getData('text') || '') : '';
-      if (!txt) { return; }
-      if (txt.length < MIN_CHARS && txt.split('\n').length < MIN_LINES) { return; }
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.stopImmediatePropagation) { e.stopImmediatePropagation(); }
-      seq += 1;
-      var id = 'p' + seq, mark = label(txt);
-      store[id] = { text: txt, mark: mark };
-      insert(ed, mark);
+      function handle(t) {
+        if (!t) { return; }
+        if (t.length < MIN_CHARS && t.split('\n').length < MIN_LINES) { return; }
+        seq += 1;
+        var id = 'p' + seq, mark = label(t);
+        store[id] = { text: t, mark: mark };
+        log('fold:' + t.length);
+        insert(mark);
+      }
+      if (txt) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) { e.stopImmediatePropagation(); }
+        log('paste:' + txt.length);
+        handle(txt);
+        return;
+      }
+      /* 键盘/系统粘贴有时拿不到 clipboardData → 读剪贴板兜底 */
+      log('paste:empty');
+      if (W.navigator && navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(function (t) {
+          if (!t) { return; }
+          if (t.length < MIN_CHARS && t.split('\n').length < MIN_LINES) { return; }
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.stopImmediatePropagation) { e.stopImmediatePropagation(); }
+          log('clip:' + t.length);
+          handle(t);
+        }).catch(function (err) { log('clip-err'); });
+      }
     } catch (err) {}
   }, true);
 
@@ -220,8 +275,28 @@
   }, true);
   D.addEventListener('submit', function (e) { guardSend(e); }, true);
 
+  /* ?pastetest=1：屏幕上显示最近事件，便于真机截图排查 */
+  if (/[?&]pastetest=1\b/.test(location.search)) {
+    setInterval(function () {
+      var d = D.querySelector('[data-dsh-uix="paste-diag"]');
+      if (!d) {
+        d = D.createElement('pre');
+        d.setAttribute('data-dsh-uix', 'paste-diag');
+        d.style.cssText = 'position:fixed;left:6px;right:6px;bottom:150px;z-index:996;max-height:34vh;overflow:auto;'
+          + 'background:rgba(0,0,0,.86);color:#9ef;font:11px/1.5 monospace;padding:8px;border-radius:8px;white-space:pre-wrap;';
+        D.body.appendChild(d);
+      }
+      var ed = editor();
+      d.textContent = 'paste-fold v3\nth=' + MIN_CHARS + 'c/' + MIN_LINES + 'L  pending=' + pendingIns.length
+        + '\neditor=' + (ed ? (ed.tagName + '.' + String(ed.className || '').slice(0, 18)) : 'none')
+        + '  len=' + (ed ? val(ed).length : -1)
+        + '\nlog:\n' + LOG.slice(-14).join('\n');
+    }, 700);
+  }
+
   W.__dshPaste = {
     enabled: true,
+    log: LOG,
     store: store,
     restoreAll: restoreAll,
     pending: function () { return pending().marks.length; },
