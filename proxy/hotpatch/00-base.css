@@ -530,3 +530,12 @@
   min-width: 28px !important;
   padding: 0 4px !important;
 }
+
+/* ===== header slim (A+B) 2026-10-13 =====
+   A) 标题栏只留 ⋯ 与侧栏：被折进菜单的两个图标隐藏（实例保留，菜单项仍能触发）
+   B) 原两个状态 chip 隐藏，改由 16-header-slim.js 合成一个胶囊
+   注意：Dc7zOa_header 里同时含标签栏 —— 不设固定高度！ */
+html body [class*="headerUtilities"] [data-dsh-slim-moved="1"] { display: none !important; }
+html body [class*="oXE0lW_trigger"],
+html body [class*="foD-wG_trigger"] { display: none !important; }
+html body [data-dsh-uix="header-status-pill"] { cursor: pointer !important; }
