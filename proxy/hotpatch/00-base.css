@@ -521,3 +521,12 @@
   flex: 0 0 auto !important;
   margin-left: auto !important;
 }
+
+/* ===== overlap fix round 5 (2026-10-12) =====
+   实测最后一处：用量 pill (289,754 44x22) 右缘 333 与提示音图标 (322,742) 左缘重叠 11px。
+   收到 32px 即完全让开。 */
+[class*="_2WTFBq_trigger"] {
+  max-width: 32px !important;
+  min-width: 28px !important;
+  padding: 0 4px !important;
+}
