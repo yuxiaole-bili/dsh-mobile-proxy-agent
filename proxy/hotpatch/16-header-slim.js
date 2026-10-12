@@ -32,12 +32,16 @@
   function hideMovedIcons() {
     teamBtn = byLabel(/智能体团队|agent team|teammates/i);
     bottomBtn = byLabel(/展开底部面板|收起底部面板|bottom panel/i);
-    [teamBtn, bottomBtn].forEach(function (b) {
-      if (b && inHeader(b)) {
-        b.setAttribute('data-dsh-slim-moved', '1');
-        b.style.setProperty('display', 'none', 'important');
-      }
-    });
+    /* ⚠️ 只折「底部面板」；「智能体团队」必须留在标题栏 ——
+       它是子代理的**主入口**，之前一起藏掉而菜单注入又没生效，导致看不到子代理。 */
+    if (bottomBtn && inHeader(bottomBtn)) {
+      bottomBtn.setAttribute('data-dsh-slim-moved', '1');
+      bottomBtn.style.setProperty('display', 'none', 'important');
+    }
+    if (teamBtn) {
+      teamBtn.removeAttribute('data-dsh-slim-moved');
+      try { teamBtn.style.removeProperty('display'); } catch (e) { teamBtn.style.display = ''; }
+    }
   }
 
   function menuOpen() {
@@ -105,7 +109,10 @@
     pill.onclick = function (ev) {
       ev.preventDefault(); ev.stopPropagation();
       var b = byLabel(/智能体团队|agent team|teammates/i);
-      if (b) { b.click(); }
+      if (b) { b.click(); return; }
+      var item = D.querySelector('[data-dsh-slim-item]');
+      if (item) { item.click(); return; }
+      try { (W.__dshSubEntry && W.__dshSubEntry.openTeam && W.__dshSubEntry.openTeam()); } catch (e) {}
     };
     D.body.appendChild(pill);
     return pill;
