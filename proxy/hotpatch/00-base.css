@@ -484,14 +484,40 @@
   font-size: 11px !important;
 }
 
-/* ===== overlap fix round 3 (2026-10-12) =====
-   审计实测：底部"上下文已用 34%"[_2WTFBq_trigger] (270,754 63x22) 压住
-   提示音图标 (322,742 28x28)，面积 176。限宽并右对齐即可。 */
+/* ===== overlap fix round 4 (2026-10-12) =====
+   round3 把 [_2WTFBq_trigger] 限成 42px 宽却导致它变成 42x38（换行）→ 重叠反而变大。
+   这里改成固定不换行的高度，并把底部控件行改为可换行，
+   解决"生成中"状态下的真实拥挤（复制/自动换行 压住 停止生成）。 */
 [class*="_2WTFBq_trigger"] {
-  max-width: 42px !important;
+  max-width: 44px !important;
+  min-width: 34px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  line-height: 22px !important;
+  padding: 0 6px !important;
+  white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  text-align: right !important;
-  font-size: 11px !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+/* 底部控件行：按钮换行而不是互相压住 */
+[class*="RlGAzG_actions"], [class*="RlGAzG_toolbar"], [class*="RlGAzG_composer"] {
+  flex-wrap: wrap !important;
+  row-gap: 4px !important;
+  align-items: center !important;
+}
+[class*="_action_1pq26"] {
+  flex: 0 0 auto !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  max-width: 24px !important;
+}
+[class*="RlGAzG_primary"] {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
 }
