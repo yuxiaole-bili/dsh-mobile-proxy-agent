@@ -68,23 +68,9 @@
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
-}
-
-/* ---- 手机端交互层（配套 90-uiux.js）：消除按键重叠 + 用量优先完整 ----
-   实测根因：360 宽下 Dc7zOa_titleCluster(x76 w152) 与 Dc7zOa_headerActions(x86 w241) 互相压住，
-   其中 foD-wG_root(后台任务, x228 w99) 整个盖在 Dc7zOa_headerUtilities(图标组, x248 w64) 上。 */
-@media (max-width: 820px) {
-  /* ① 顶部标题行：允许换行，chip 限宽省略，图标按钮独占一块且优先可点 */
-  /* 不换行：换行会把标题行撑到 60px 高，压住下面"对话/轨迹/上下文"标签行（真机截图）。
-     一行塞下的办法是：chip 限宽省略 + 图标按钮缩小 + 允许收缩。 */
-  [class*="titleRow"] { flex-wrap: nowrap !important; height: auto !important; min-height: 30px !important;
-                        max-height: 34px !important; align-items: center !important; }
   [class*="titleCluster"] { min-width: 0 !important; flex: 1 1 auto !important; overflow: hidden !important; }
   [class*="headerActions"] { flex: 0 1 auto !important; margin-left: auto !important; flex-wrap: nowrap !important; gap: 4px !important; max-width: 100% !important; min-width: 0 !important; overflow: hidden !important; justify-content: flex-end !important; }
   [class*="headerUtilities"] { flex: 0 0 auto !important; position: relative !important; z-index: 3 !important; }
-  [class*="oXE0lW_root"], [class*="foD-wG_root"] { max-width: 42vw !important; overflow: hidden !important; }
-  [class*="oXE0lW_root"] *, [class*="foD-wG_root"] * { white-space: nowrap !important; overflow: hidden !important;
-                                                       text-overflow: ellipsis !important; }
   /* 图标按钮缩一号，把宽度让给 chip */
   [class*="headerUtilities"] { flex: 0 1 auto !important; min-width: 0 !important; gap: 2px !important; }
   /* 只缩"头部图标按钮"本身。**必须排除下拉菜单项** —— 菜单是渲染在 headerUtilities 内部的，
@@ -93,16 +79,6 @@
   [class*="headerUtilities"] [role="button"]:not([class*="_item_"]):not([role="menuitem"]) {
     width: 26px !important; height: 26px !important; padding: 0 !important; flex: 0 0 auto !important;
   }
-  /* chip 再收一点，保证一行放得下 */
-  [class*="oXE0lW_root"], [class*="foD-wG_root"] { max-width: 30vw !important; }
-
-
-  /* 长按 chip：临时放开省略，看全称 */
-  html[data-dsh-uix-chipfull="1"] [class*="oXE0lW_root"],
-  html[data-dsh-uix-chipfull="1"] [class*="foD-wG_root"] { max-width: 100% !important; }
-  html[data-dsh-uix-chipfull="1"] [class*="oXE0lW_root"] *,
-  html[data-dsh-uix-chipfull="1"] [class*="foD-wG_root"] * { overflow: visible !important;
-      text-overflow: clip !important; white-space: normal !important; }
 
   /* ② 底部用量：优先完整显示 —— 去掉省略号、允许换行、行高自适应 */
   [class*="_2WTFBq_trigger"], [class*="_2WTFBq_root"] { max-width: none !important; height: auto !important;
@@ -120,32 +96,12 @@
   [data-dsh-uix="usage-toggle"] { position: relative !important; z-index: 4 !important; }
   [data-dsh-uix="usage-toggle"]::after { content: ""; position: absolute;
       left: -9px; right: -9px; top: -9px; bottom: -9px; }
-}
-
-  /* 标题栏只有 256px，塞不下"标题+2 个计数chip+头像+3 个图标"（实测需要约 400px，
-     矩形必然相交）。窄屏收起两个计数 chip —— 数量在侧栏/智能体团队面板里都能看到。 */
-  [class*="oXE0lW_root"], [class*="foD-wG_root"] {
-  /* ⚠️ 这两个 chip 是"1 个子智能体""1 个后台任务"——唯一能看到子代理状态的入口，
-     早期为了修标题栏重叠曾把它们 display:none，那是错的：面板里没有子代理列表。 */
-  display: inline-flex !important;
-  flex: 0 0 auto !important;
-  max-width: 46vw !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  font-size: 11px !important;
-  opacity: .92 !important;
-  cursor: pointer !important;
-}
 /* 让标题行允许换行：两个状态 chip 换到第二行，不再压标题 */
 [class*="BynINW_centerCol"] > header,
 [class*="Dc7zOa_header"],
 [class*="titleCluster"] {
   flex-wrap: wrap !important;
   row-gap: 2px !important;
-}
-[class*="oXE0lW_root"], [class*="foD-wG_root"] {
-  order: 99 !important;
 }
 @media (max-width: 820px) {
   [class*="oXE0lW_root"] > *, [class*="foD-wG_root"] > * {
@@ -384,56 +340,6 @@
     overscroll-behavior: contain !important;
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
   }
-}
-
-/* ===== overlap-audit fixes (2026-10-12) =====
-   审计（360×780）实测的真实重叠：
-     · "1 个后台任务运行中" chip (117,59 152x28) ∩ 标签栏 对话/轨迹/上下文 (84..247, 56)
-     · "1 个子智能体" chip (177,29 92x28) ∩ 正文区 (68,27)
-     · 运行状态行 "深度求索中，用时…" (88,721) ∩ 访问模式(122,713)/选择模型(201,713)/添加文件(86,713)
-     · "上下文已用 34%" (270,754) ∩ 提示音图标 (322,742)
-   注意：真正可见的是 *_trigger，而不是 *_root（之前改错了类名）。 */
-
-/* ① 子智能体 / 后台任务 chip：改成右上角紧凑悬浮胶囊，彻底离开标题栏与标签栏 */
-[class*="oXE0lW_trigger"], [class*="foD-wG_trigger"],
-[class*="oXE0lW_root"] > [class*="trigger"], [class*="foD-wG_root"] > [class*="trigger"] {
-  position: fixed !important;
-  left: auto !important;
-  right: 8px !important;
-  z-index: 870 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  max-width: 44vw !important;
-  height: 22px !important;
-  min-height: 22px !important;
-  padding: 0 8px !important;
-  margin: 0 !important;
-  border-radius: 11px !important;
-  background: rgba(40, 41, 48, .94) !important;
-  border: 1px solid rgba(150, 150, 170, .32) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .35) !important;
-  font-size: 11px !important;
-  line-height: 22px !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-  backdrop-filter: blur(6px) !important;
-}
-[class*="oXE0lW_trigger"], [class*="oXE0lW_root"] > [class*="trigger"] { top: 86px !important; }
-[class*="foD-wG_trigger"], [class*="foD-wG_root"] > [class*="trigger"] { top: 112px !important; }
-/* 它们的旧容器不要再占位（否则仍会挤压标题/标签栏） */
-[class*="oXE0lW_root"], [class*="foD-wG_root"] {
-  position: static !important;
-  flex: 0 0 auto !important;
-  width: auto !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  height: auto !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
 
 /* ② 运行状态行（深度求索中，用时…）限宽，不再压住 访问模式/选择模型/添加文件 */
 [class*="xz4KEq_runni"] {
@@ -531,11 +437,18 @@
   padding: 0 4px !important;
 }
 
-/* ===== header slim (A+B) 2026-10-13 =====
-   A) 标题栏只留 ⋯ 与侧栏：被折进菜单的两个图标隐藏（实例保留，菜单项仍能触发）
-   B) 原两个状态 chip 隐藏，改由 16-header-slim.js 合成一个胶囊
-   注意：Dc7zOa_header 里同时含标签栏 —— 不设固定高度！ */
-html body [class*="headerUtilities"] [data-dsh-slim-moved="1"] { display: none !important; }
-html body [class*="oXE0lW_trigger"],
-html body [class*="foD-wG_trigger"] { display: none !important; }
-html body [data-dsh-uix="header-status-pill"] { cursor: pointer !important; }
+/* ===== 原生 chip 的**最小**布局修正（2026-10-14）=====
+   chip 是"1 个子智能体 ⌄"这类原生下拉触发器，必须保留原生交互（点开=子代理列表）。
+   这里只做一件事：让标题行允许换行，chip 落到标题下方、标签栏上方，避免与之相交。 */
+html body [class*="Dc7zOa_header"] { flex-wrap: wrap !important; row-gap: 2px !important; }
+/* 排序：标题(0) → 标签栏(1) → 状态 chip(99)，避免 chip 夹在标签栏中间 */
+html body [class*="Dc7zOa_tabs"], html body [class*="Dc7zOa_tabList"] { order: 1 !important; }
+html body [class*="Dc7zOa_title"], html body [class*="Dc7zOa_header"] > *:not([class*="tab"]):not([class*="oXE0lW"]):not([class*="foD-wG"]) { order: 0 !important; }
+html body [class*="oXE0lW_trigger"], html body [class*="foD-wG_trigger"] {
+  order: 99 !important;
+  flex: 0 0 auto !important;
+  max-width: 60vw !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
