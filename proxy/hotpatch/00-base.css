@@ -452,3 +452,40 @@ html body [class*="oXE0lW_trigger"], html body [class*="foD-wG_trigger"] {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
+
+/* ===== 设置页分区导航修复（2026-10-14）=====
+   实测：6 个分区（通用设置/模型/内置插件/Agent 预设/插件市场/侧边卡片）在 360px 里
+   总宽超出，第 4 个起被裁掉 → 后面的分区看不到也点不到。
+   修法：紧凑化（12px 字、16px 图标、8px 内边距）+ 横向可滑（隐藏滚动条）。 */
+html body [class*="wCInkW_nav"] {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  touch-action: pan-x !important;
+  padding: 0 8px !important;
+  gap: 2px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+html body [class*="wCInkW_nav"]::-webkit-scrollbar { display: none !important; height: 0 !important; }
+html body [class*="wCInkW_nav"] > *,
+html body [class*="wCInkW_nav"] button,
+html body [class*="wCInkW_nav"] [role="button"] {
+  flex: 0 0 auto !important;
+  min-width: auto !important;
+  max-width: none !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 10px !important;
+  gap: 4px !important;
+  font-size: 12px !important;
+  line-height: 40px !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+html body [class*="wCInkW_nav"] svg { width: 16px !important; height: 16px !important; }
+html body [class*="wCInkW_nav"] img { width: 16px !important; height: 16px !important; }
+/* 面板本身：内容列给足宽度（之前只留 124px 的历史问题，这里兜底） */
+html body [class*="wCInkW_options"] { min-width: 0 !important; width: 100% !important; }
