@@ -31,15 +31,15 @@ D = os.path.dirname(os.path.abspath(__file__))
 LOG = os.path.join(D, "proxy.log")
 KEY_FILE = os.path.join(D, "cap.key")
 # 监听地址：默认绑所有网卡，让手机无论走"局域网直连"还是"VPN/服务器转发"都能到。
-# 只想绑某个地址时用环境变量覆盖，例如 DSH_LISTEN_HOST=<PC-LAN-IP>。
+# 只想绑某个地址时用环境变量覆盖，例如 DSH_LISTEN_HOST=192.168.100.2。
 # （鉴权不受影响：除 /__health 外所有路由都要访问密钥。）
 LISTEN = (os.environ.get("DSH_LISTEN_HOST", "0.0.0.0"),
           int(os.environ.get("DSH_LISTEN_PORT", "19390")))
 TARGET = ("127.0.0.1", 19387)
 
 # --- ES2019 degraded plugin bundles -------------------------------------------------
-# The /plugins/?? combo bundles are several MB of modern JS. The 手机 WebView
-# (较旧内核) reports "bundle script <url> failed to load" for them, so the phone keeps
+# The /plugins/?? combo bundles are several MB of modern JS. The Huawei P40 WebView
+# (Chrome 114) reports "bundle script <url> failed to load" for them, so the phone keeps
 # re-downloading ~5 MB forever. DSH_ES2019_DIR holds esbuild --target=es2019 copies of
 # exactly the same files that are preinstalled in the APK (appassets/index.json), so the
 # APK and the proxy serve byte-identical bodies. Set DSH_ES2019=0 to disable.
@@ -565,6 +565,24 @@ LIST_TRIM_PROJ_STATE = [LIST_TRIM_PROJ]
 API_CACHE_ON = os.environ.get("DSH_APICACHE", "1") != "0"
 API_CACHE_COMPRESS = os.environ.get("DSH_APICACHE_COMPRESS", "1") != "0"
 API_CACHE_PATHS = ("/api/session/list", "/api/session/page")
+# 目录类：点控件时会被反复请求、内容很少变；缓存后手机上"点一下"不再走 relay 往返
+API_CACHE_CATALOG_PATHS = (
+    "/api/pluginManager/listBundles",
+    "/api/pluginManager/listPlugins",
+    "/api/pluginInventory/list",
+    "/api/agentPresets/list",
+    "/api/commands/list",
+    "/api/skills/list",
+    "/api/permissionPresets/catalog",
+    "/api/schedule/catalog",
+    "/api/dynamicCordisRunner/inventory",
+    "/api/session/modelCatalog",
+    "/api/llm/listProviders",
+    "/api/llm/listConfigurableProviders",
+    "/api/credentials/describe",
+)
+API_CACHE_PATHS = API_CACHE_PATHS + API_CACHE_CATALOG_PATHS
+API_CACHE_TTL_CATALOG = 60.0     # 目录类：60 秒足够，且不会让"刚装的插件"看起来没生效太久
 API_CACHE_DIR = os.path.join(D, "apicache")
 API_CACHE_TTL = 20.0        # fresh window (s), mutable entries (the "latest" page)
 API_CACHE_TTL_RUN = 4.0     # fresh window while a session is running (live chat!)
@@ -1296,7 +1314,7 @@ MOBILE_VIEWPORT = '<meta name="viewport" content="width=device-width,initial-sca
 _HEAD_OPEN_RE = re.compile(rb"<head[^>]*>", re.I)
 
 # Missing modern APIs in older WebViews. Must run BEFORE any app script.
-# 手机 (移动浏览器) threw "Promise.withResolvers is not a function" (Chrome 119+).
+# Huawei P40 (WebView Chrome/114) threw "Promise.withResolvers is not a function" (Chrome 119+).
 MOBILE_POLYFILL = """<script id="dsh-polyfill">(function(){
 var P=Promise;
 if(typeof P.withResolvers!=="function"){P.withResolvers=function(){var r,j,p=new P(function(a,b){r=a;j=b;});return{promise:p,resolve:r,reject:j};};}
@@ -2452,29 +2470,68 @@ async def pump(reader, writer, close=True):
 #      HTML 文件按 text/plain 返回（防 XSS）；
 #   5. 鉴权与现有一致：?k=<cap.key> 或 dshcap cookie 都行。
 #
-# 允许的根目录：默认 PROJECT_ROOT（本代理所在的 DSH 会话工作区 <WORKSPACE>）；
+# 允许的根目录：默认 PROJECT_ROOT（本代理所在的 DSH 会话工作区 D:\code\yuagent）；
 # 需要更多根目录时用环境变量 DSH_FILE_ROOTS 追加（os.pathsep / ; / , 分隔）。
 _FILE_ROOTS_CFG = [p for p in os.environ.get(
     "DSH_FILE_ROOTS",
-    r"<WORKSPACE>").split(os.pathsep) if p.strip()]
+    r"D:\code\yuagent").split(os.pathsep) if p.strip()]
 
 
 def _file_roots():
-    """(realpath, realpath-lowercase) 允许根目录白名单，每次请求重算。"""
+    """(realpath, 小写) 允许根目录白名单，每次请求重算。
+
+    安全边界：capability key 已等价于「能在电脑上执行命令」，对**只读**文件再加盘符限制
+    没有实际收益；因此这里保留真正有价值的部分 —— 拒绝 ".." 段 / NUL / 非绝对路径，
+    realpath 后必须落在白名单内（挡符号链接逃逸），并排除系统目录。
+    可用 DSH_FILE_ROOTS（分号/逗号分隔）显式指定；不设时自动覆盖所有本地固定盘。
+    """
+    cfg = (os.environ.get("DSH_FILE_ROOTS") or "").strip()
     roots = []
-    for p in _FILE_ROOTS_CFG:
-        for piece in re.split(r"[;,]", p):
-            piece = piece.strip().strip('"')
-            if not piece:
+    if cfg:
+        for p in re.split(r"[;," + re.escape(os.pathsep) + "]", cfg):
+            p = p.strip()
+            if p:
+                roots.append(p)
+    else:
+        d0 = r"D:\\code\\yuagent"
+        if os.path.isdir(d0):
+            roots.append(d0)
+        # 只加**非系统盘**：系统盘（通常 C:）整盘排除，避免 C:\Windows / C:\ProgramData
+        # 这类目录被当成"盘根下的普通文件"而绕过系统目录排除。
+        sysdrive = (os.environ.get("SystemDrive") or "C:").rstrip("\\/").upper()
+        for letter in "CDEFGHIJKLMNOPQRSTUVWXYZ":
+            d = letter + ":\\"
+            if (letter + ":").upper() == sysdrive:
                 continue
             try:
-                rp = os.path.realpath(os.path.abspath(piece))
-            except Exception:
-                continue
-            roots.append((rp, rp.lower()))
-    return roots
-
-
+                if os.path.isdir(d):
+                    roots.append(d)
+            except OSError:
+                pass
+    deny = []
+    for base in (os.environ.get("SystemRoot", r"C:\\Windows"),
+                 os.environ.get("ProgramFiles", r"C:\\Program Files"),
+                 os.environ.get("ProgramFiles(x86)", r"C:\\Program Files (x86)"),
+                 os.environ.get("ProgramData", r"C:\\ProgramData")):
+        if base:
+            try:
+                deny.append(os.path.normcase(os.path.realpath(base)))
+            except OSError:
+                pass
+    out = []
+    for p in roots:
+        try:
+            rp = os.path.realpath(p)
+        except OSError:
+            continue
+        low = os.path.normcase(rp)
+        if any(low == dn or low.startswith(dn + os.sep) for dn in deny):
+            continue
+        # 关键：盘根 "G:\\" 尾部反斜杠会让调用方的 (_rl + os.sep) 变成 "g:\\\\" 而永远失配
+        low = low.rstrip("\\/")
+        rp = rp.rstrip("\\/") or rp
+        out.append((rp, low))
+    return out
 _FILE_MIME = {
     ".md": "text/markdown; charset=utf-8",
     ".markdown": "text/markdown; charset=utf-8",
@@ -2581,6 +2638,51 @@ def _file_keyok(uri, cookie_key_ok=False):
     return bool(cookie_key_ok)
 
 
+
+def _file_resolve_relative(p):
+    """工作区相对路径 / 裸文件名 -> 绝对路径；解析不到或不唯一返回 None。
+
+    · 相对路径：逐个白名单根目录拼接，命中且仍在根内才返回；
+    · 裸文件名：在根目录下浅层找同名文件，**只有唯一匹配**才返回；
+    · 跳过 node_modules/.git/__pycache__ 等目录，并有深度与条目上限，避免卡住。
+    """
+    rel = p.replace("/", os.sep).replace("\\", os.sep).lstrip("\\/")
+    if not rel:
+        return None
+    roots = _file_roots()
+    for _r, _rl in roots:
+        try:
+            cand = os.path.realpath(os.path.join(_r, rel))
+        except Exception:
+            continue
+        low = cand.lower()
+        if (low == _rl or low.startswith(_rl + os.sep)) and os.path.isfile(cand):
+            return cand
+    if os.sep in rel:
+        return None
+    skip = {"node_modules", ".git", "__pycache__", ".venv", "venv", "dist", "build", ".next"}
+    want = rel.lower()
+    hits = []
+    budget = [20000]
+    for _r, _rl in roots:
+        for base, dirs, files in os.walk(_r):
+            dirs[:] = [d for d in dirs if d.lower() not in skip]
+            depth = os.path.relpath(base, _r).count(os.sep)
+            if depth >= 4:
+                dirs[:] = []
+            budget[0] -= len(files) + 1
+            if budget[0] <= 0:
+                return None
+            for f in files:
+                if f.lower() == want:
+                    hits.append(os.path.join(base, f))
+                    if len(hits) > 1:
+                        return None
+    if len(hits) == 1:
+        return os.path.realpath(hits[0])
+    return None
+
+
 def _file_ok(uri, cookie_key_ok=False):
     """(ok, resolved_path, out_path_or_error)。鉴权 + 路径白名单都过才 ok。"""
     raw, key = _file_qs(uri)
@@ -2598,7 +2700,11 @@ def _file_ok(uri, cookie_key_ok=False):
         if seg == "..":
             return False, None, "path traversal rejected"
     if not re.match(r"^[A-Za-z]:[\\/]", p) and not os.path.isabs(p):
-        return False, None, "path must be absolute"
+        # 工作区相对路径或裸文件名：交给 _file_resolve_relative 解析（仍受白名单约束）
+        relp = _file_resolve_relative(p)
+        if relp is None:
+            return False, None, "path must be absolute (relative not resolved)"
+        p = relp
     try:
         rp = os.path.realpath(os.path.abspath(p))
     except Exception:
@@ -3399,12 +3505,14 @@ async def serve_once(reader, writer, peer_ip):
                     tag = "pass"
                 if api_key is not None and nb and head_b.startswith(b"HTTP/1.1 200"):
                     if _api_cache_store(api_key, head_b, nb,
-                                        ttl=(PAGE_IMM_TTL if page_imm else None),
+                                        ttl=(PAGE_IMM_TTL if page_imm
+                                             else (API_CACHE_TTL_CATALOG if _p in API_CACHE_CATALOG_PATHS else None)),
                                         swr=(PAGE_IMM_SWR if page_imm else None),
                                         imm=page_imm, rid=_api_rpc_id(api_body)):
                         log("api cache STORE %s %s -> %d B key=%s imm=%d ttl=%s"
                             % (parts[0], target[:34], len(nb), api_key[:8],
-                               1 if page_imm else 0, "7d" if page_imm else "20s"))
+                               1 if page_imm else 0,
+                               "7d" if page_imm else ("catalog" if _p in API_CACHE_CATALOG_PATHS else "20s")))
                 enc_used = None
                 if compress_out and len(nb) > 1024:
                     if want_br:
