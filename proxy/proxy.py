@@ -21,6 +21,8 @@ import os
 import re
 import secrets
 import time
+import socket
+import subprocess
 
 try:
     import brotli  # optional: better ratio than gzip for the huge plugin bundles
@@ -35,7 +37,128 @@ KEY_FILE = os.path.join(D, "cap.key")
 # （鉴权不受影响：除 /__health 外所有路由都要访问密钥。）
 LISTEN = (os.environ.get("DSH_LISTEN_HOST", "0.0.0.0"),
           int(os.environ.get("DSH_LISTEN_PORT", "19390")))
-TARGET = ("127.0.0.1", 19387)
+# ---------------------------------------------------------------- upstream 自动发现
+# 2026-10-18：DSH 重启后端口会变（实测 19387 -> 60336），上游写死就会"又连不上"。
+# 这里改为启动时自动发现，并把结果记到 upstream.txt。
+_UPSTREAM_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "upstream.txt")
+
+
+def _dsh_boot_probe(port, timeout=0.9):
+    """向 127.0.0.1:port 发一个最小 HTTP 请求，判断是不是 DSH Web（看启动标记）。"""
+    try:
+        s = socket.create_connection(("127.0.0.1", port), timeout=timeout)
+        try:
+            s.sendall(("GET / HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+                       "User-Agent: dsh-proxy-detect\r\nConnection: close\r\n\r\n" % port).encode())
+            buf = b""
+            while len(buf) < 65536:
+                chunk = s.recv(8192)
+                if not chunk:
+                    break
+                buf += chunk
+                if b"__DSH_BOOT__" in buf or b"</html>" in buf[-2000:]:
+                    break
+            return b"__DSH_BOOT__" in buf
+        finally:
+            s.close()
+    except Exception:
+        return False
+
+
+def _listening_ports():
+    """本机监听端口 -> 进程 PID（用 netstat，避免额外依赖）。"""
+    pairs = []
+    try:
+        out = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True, text=True, timeout=8).stdout
+        for line in out.splitlines():
+            m = re.match(r"\s*TCP\s+(\S+):(\d+)\s+\S+\s+LISTENING\s+(\d+)", line, re.I)
+            if not m:
+                continue
+            addr, port, pid = m.group(1), int(m.group(2)), int(m.group(3))
+            if addr in ("127.0.0.1", "0.0.0.0", "[::1]", "::1", "[::]"):
+                pairs.append((port, pid))
+    except Exception:
+        pass
+    return pairs
+
+
+def _dsh_pids():
+    """DeepSeek Harness 主进程 PID 集合（桌面版按进程归属找端口，避开 401 鉴权）。"""
+    pids = set()
+    try:
+        out = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq DeepSeek Harness.exe", "/FO", "CSV", "/NH"],
+            capture_output=True, text=True, errors="ignore", timeout=10).stdout
+        for line in out.splitlines():
+            m = re.match(r'^"([^"]+)"\s*,\s*"(\d+)"', line)
+            if m and m.group(1).lower().endswith("deepseek harness.exe"):
+                pids.add(int(m.group(2)))
+    except Exception:
+        pass
+    return pids
+
+
+def _detect_upstream():
+    # 1) 显式环境变量
+    env = (os.environ.get("DSH_UPSTREAM") or "").strip()
+    if env:
+        m = re.match(r"^(?:https?://)?([^:/\s]+):(\d+)", env)
+        if m:
+            return m.group(1), int(m.group(2))
+
+    pairs = _listening_ports()
+    dsh_pids = _dsh_pids()
+    port_to_pid = {}
+    for port, pid in pairs:
+        port_to_pid.setdefault(port, pid)
+
+    # 2) 记录文件：端口仍由 DeepSeek Harness 监听则直接采用
+    try:
+        if os.path.exists(_UPSTREAM_FILE):
+            t = open(_UPSTREAM_FILE, "r", encoding="utf-8").read().strip()
+            m = re.match(r"^(\d+)$", t)
+            if m:
+                port = int(m.group(1))
+                pid = port_to_pid.get(port)
+                if pid is not None and (pid in dsh_pids or _dsh_boot_probe(port, timeout=0.6)):
+                    return ("127.0.0.1", port)
+    except Exception:
+        pass
+
+    # 3) 扫描：优先挑属于 DeepSeek Harness 的端口（新版 DSH 根路径 401，HTTP 探测不可靠）
+    candidates = []
+    for port, pid in pairs:
+        if port in (19390, 19395):
+            continue
+        if pid in dsh_pids:
+            candidates.append(port)
+    if not candidates:
+        for port, pid in pairs:
+            if port in (19390, 19395):
+                continue
+            if _dsh_boot_probe(port):
+                candidates.append(port)
+    for port in candidates:
+        try:
+            open(_UPSTREAM_FILE, "w", encoding="utf-8").write(str(port))
+        except Exception:
+            pass
+        print("[upstream] auto-detected DSH on 127.0.0.1:%d" % port, flush=True)
+        return ("127.0.0.1", port)
+
+    # 4) 兜底
+    try:
+        if os.path.exists(_UPSTREAM_FILE):
+            t = open(_UPSTREAM_FILE, "r", encoding="utf-8").read().strip()
+            m = re.match(r"^(\d+)$", t)
+            if m and _dsh_boot_probe(int(m.group(1)), timeout=0.6):
+                return ("127.0.0.1", int(m.group(1)))
+    except Exception:
+        pass
+    return ("127.0.0.1", 19387)
+
+
+TARGET = _detect_upstream()
 
 # --- ES2019 degraded plugin bundles -------------------------------------------------
 # The /plugins/?? combo bundles are several MB of modern JS. The Huawei P40 WebView
@@ -497,7 +620,7 @@ W.__dshPager={__installed:1,version:5,state:state,reset:reset,dbg:D,
   setAuto:function(v){autoOn=!!v;return autoOn;}};
 })();</script>"""
 APK_FILE = os.path.join(D, "DSH.apk")
-HOST_REWRITE = "127.0.0.1:19387"
+HOST_REWRITE = "%s:%d" % TARGET
 TRIM_PATHS = ("/api/session/list", "/api/session/page")
 TRIM_MAX_ITEMS = 60          # max sessions kept in session/list
 TRIM_MAX_RECORDS = 20        # max records kept in session/page
@@ -2371,6 +2494,56 @@ def load_secret():
 
 KEY = access_key()
 SECRET = load_secret()
+
+# ---------------------------------------------------------------- DSH web auth secret
+# 2026-10-21：DSH 新版使用 dsh-auth-<hash> + HMAC 签名的 Cookie。签名密钥是持久化的
+# "durable record"，存在 ~/.dsh/.credentials.yaml 的
+#   records -> client-connection/browser-session -> payload.secret (base64url, 32B)
+# 旧版把密钥写死在代理里 -> DSH 升级后签名无效 -> 401。这里改为动态读取 + 变化重载。
+_CRED_PATH = os.path.join(os.path.expanduser("~"), ".dsh", ".credentials.yaml")
+_SECRET_CACHE = {"mtime": None, "secret": None}
+
+
+def _b64url_dec(s):
+    s = s.strip()
+    pad = "=" * ((4 - len(s) % 4) % 4)
+    return base64.urlsafe_b64decode(s.replace("-", "+").replace("_", "/") + pad)
+
+
+def _load_dsh_secret():
+    """从 .credentials.yaml 读 browser-session 的签名密钥（base64url -> bytes）。"""
+    try:
+        st = os.stat(_CRED_PATH)
+    except OSError:
+        return None
+    if _SECRET_CACHE["mtime"] == st.st_mtime and _SECRET_CACHE["secret"]:
+        return _SECRET_CACHE["secret"]
+    try:
+        txt = open(_CRED_PATH, "r", encoding="utf-8", errors="replace").read()
+    except OSError:
+        return None
+    # 定位 records -> client-connection/browser-session -> payload -> secret
+    m = re.search(r"client-connection/browser-session:[\s\S]{0,400}?payload:[\s\S]{0,200}?secret:\s*([A-Za-z0-9_\-]{20,})", txt)
+    if not m:
+        return None
+    try:
+        raw = _b64url_dec(m.group(1))
+        if len(raw) != 32:
+            return None
+    except Exception:
+        return None
+    _SECRET_CACHE["mtime"] = st.st_mtime
+    _SECRET_CACHE["secret"] = raw
+    log("loaded DSH web auth secret from credentials (32B)")
+    return raw
+
+
+def _current_secret():
+    s = _load_dsh_secret()
+    return s if s else SECRET
+
+
+
 _cache = {}  # authority -> (name, value, issuedAt)
 
 
@@ -2392,7 +2565,7 @@ def cookie_for(authority):
         return hit[0], hit[1]
     payload = {"version": 1, "authority": authority, "issuedAt": now, "expiresAt": now + DAYS * 86400000}
     body = b64url(json.dumps(payload, separators=(",", ":")).encode())
-    sig = b64url(hmac.new(SECRET, body.encode(), hashlib.sha256).digest())
+    sig = b64url(hmac.new(_current_secret(), body.encode(), hashlib.sha256).digest())
     name = "dsh-auth-" + b64url(hashlib.sha256(authority.encode()).digest())
     value = "v1." + body + "." + sig
     _cache[authority] = (name, value, now)
