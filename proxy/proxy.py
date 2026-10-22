@@ -2908,6 +2908,22 @@ def _file_fail(writer, status, reason, note):
     return writer.drain()
 
 
+_FILE_VIEW_HTML = '<!doctype html>\n<html lang="zh"><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<title>文件查看</title>\n<style>\n  :root{color-scheme:dark}\n  *{box-sizing:border-box}\n  body{margin:0;background:#1b1c21;color:#e8e6ef;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif}\n  header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 14px;\n    background:rgba(27,28,33,.94);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}\n  header .name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}\n  header .meta{opacity:.55;font-size:12px;white-space:nowrap}\n  header a.btn{background:rgba(255,255,255,.1);color:#e8e6ef;text-decoration:none;padding:6px 10px;border-radius:8px;font-size:12px}\n  header a.btn:hover{background:rgba(255,255,255,.18)}\n  main{padding:16px 14px 60px;max-width:1100px;margin:0 auto}\n  pre{margin:0;padding:14px;border-radius:12px;background:#22232a;overflow:auto;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;tab-size:2}\n  code{font:inherit}\n  .md h1,.md h2,.md h3{margin:1.2em 0 .5em;line-height:1.3}\n  .md h1{font-size:24px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:.3em}\n  .md h2{font-size:20px}.md h3{font-size:16px}\n  .md code{background:#22232a;padding:2px 5px;border-radius:5px;font-size:12.5px}\n  .md pre code{background:none;padding:0}\n  .md a{color:#7aa2ff}\n  .md ul,.md ol{padding-left:1.6em}\n  .md blockquote{margin:.8em 0;padding:.2em 12px;border-left:3px solid #4a4c58;color:#b9b6c6}\n  .md table{border-collapse:collapse;margin:.8em 0}\n  .md th,.md td{border:1px solid rgba(255,255,255,.14);padding:6px 10px}\n  img{max-width:100%;border-radius:10px;display:block;margin:0 auto}\n  iframe{width:100%;height:calc(100vh - 130px);border:0;border-radius:10px;background:#22232a}\n  .err{padding:14px;border-radius:12px;background:#3a2325;border:1px solid #6b3a3e}\n  .spin{padding:40px;text-align:center;opacity:.6}\n</style></head><body>\n<header>\n  <span class="name" id="name">文件</span>\n  <span class="meta" id="meta"></span>\n  <a class="btn" id="dl" href="#">下载</a>\n</header>\n<main id="main"><div class="spin">载入中…</div></main>\n<script>\n(function(){\n  var q = new URLSearchParams(location.search);\n  var path = q.get(\'path\') || \'\';\n  var k = q.get(\'k\') || \'\';\n  var name = path.replace(/\\\\/g,\'/\').split(\'/\').pop() || \'文件\';\n  var ext = (name.split(\'.\').pop()||\'\').toLowerCase();\n  var url = \'/f?path=\' + encodeURIComponent(path) + \'&k=\' + encodeURIComponent(k);\n  document.title = name;\n  document.getElementById(\'name\').textContent = name;\n  document.getElementById(\'dl\').href = \'/dl?path=\' + encodeURIComponent(path) + \'&k=\' + encodeURIComponent(k);\n  var main = document.getElementById(\'main\');\n  function esc(s){return s.replace(/&/g,\'&amp;\').replace(/</g,\'&lt;\').replace(/>/g,\'&gt;\');}\n  function fmt(n){ if(n<1024) return n+\' B\'; if(n<1048576) return (n/1024).toFixed(1)+\' KB\'; return (n/1048576).toFixed(2)+\' MB\'; }\n  function md(src){\n    var blocks=[], s=src.replace(/\\r\\n/g,\'\\n\');\n    s = s.replace(/```([^\\n]*)\\n([\\s\\S]*?)```/g, function(_,lang,code){blocks.push(\'<pre><code>\'+esc(code)+\'</code></pre>\');return \'\\u0000\'+(blocks.length-1)+\'\\u0000\';});\n    s = esc(s);\n    s = s.replace(/^###### (.*)$/gm,\'<h6>$1</h6>\').replace(/^##### (.*)$/gm,\'<h5>$1</h5>\')\n         .replace(/^#### (.*)$/gm,\'<h4>$1</h4>\').replace(/^### (.*)$/gm,\'<h3>$1</h3>\')\n         .replace(/^## (.*)$/gm,\'<h2>$1</h2>\').replace(/^# (.*)$/gm,\'<h1>$1</h1>\');\n    s = s.replace(/^\\s*&gt;\\s?(.*)$/gm,\'<blockquote>$1</blockquote>\');\n    s = s.replace(/`([^`\\n]+)`/g,\'<code>$1</code>\');\n    s = s.replace(/\\*\\*([^*\\n]+)\\*\\*/g,\'<strong>$1</strong>\').replace(/\\*([^*\\n]+)\\*/g,\'<em>$1</em>\');\n    s = s.replace(/\\[([^\\]]+)\\]\\(([^)\\s]+)\\)/g,\'<a href="$2" target="_blank" rel="noreferrer">$1</a>\');\n    s = s.replace(/^\\s*[-*+]\\s+(.*)$/gm,\'<li>$1</li>\').replace(/(<li>[\\s\\S]*?<\\/li>)/g,\'<ul>$1</ul>\');\n    s = s.split(/\\n{2,}/).map(function(p){ p=p.trim(); if(!p) return \'\';\n        if(/^<(h\\d|ul|blockquote|pre|li)/.test(p)) return p; return \'<p>\'+p.replace(/\\n/g,\'<br>\')+\'</p>\'; }).join(\'\\n\');\n    s = s.replace(/\\u0000(\\d+)\\u0000/g,function(_,i){return blocks[+i];});\n    return \'<div class="md">\'+s+\'</div>\';\n  }\n  var imgExt = [\'png\',\'jpg\',\'jpeg\',\'gif\',\'webp\',\'bmp\',\'svg\',\'ico\'];\n  var pdfExt = [\'pdf\'];\n  if (imgExt.indexOf(ext) >= 0) {\n    var im = new Image(); im.onload=function(){ main.innerHTML=\'\'; main.appendChild(im);\n      document.getElementById(\'meta\').textContent = im.naturalWidth+\'×\'+im.naturalHeight; }; im.onerror=function(){ main.innerHTML=\'<div class="err">图片加载失败</div>\'; };\n    im.src = url; return;\n  }\n  if (pdfExt.indexOf(ext) >= 0) {\n    var f = document.createElement(\'iframe\'); f.src = url; main.innerHTML=\'\'; main.appendChild(f); return;\n  }\n  fetch(url, {credentials:\'same-origin\'}).then(function(r){\n    if(!r.ok) throw new Error(\'HTTP \'+r.status);\n    return r.text().then(function(t){ return {t:t, size:+(r.headers.get(\'content-length\')||t.length)}; });\n  }).then(function(o){\n    document.getElementById(\'meta\').textContent = fmt(o.size);\n    if (ext === \'md\' || ext === \'markdown\') { main.innerHTML = md(o.t); }\n    else { main.innerHTML = \'<pre><code>\'+esc(o.t)+\'</code></pre>\'; }\n  }).catch(function(e){\n    main.innerHTML = \'<div class="err">打不开这个文件：\'+esc(String(e.message||e))+\n      \'<br><br>可能原因：路径不在允许的根目录内、文件不存在，或没有访问密钥。<br>\' +\n      \'可直接尝试：<a href="\'+url+\'" target="_blank">打开原始文件</a></div>\';\n  });\n})();\n</script></body></html>'
+
+
+async def _file_view(writer, client_close):
+    """Self-contained file viewer page (works on PC and phone; DSH's built-in viewer 405s)."""
+    body = _FILE_VIEW_HTML.encode("utf-8")
+    try:
+        hdr = _file_hdrs("text/html; charset=utf-8", "inline", len(body), client_close)
+        writer.write(hdr.encode("latin-1"))
+        writer.write(body)
+        await writer.drain()
+    except Exception as e:
+        log("view page failed: %r" % (e,))
+
+
+
 async def _file_stream(writer, f, total):
     sent = 0
     while sent < total:
@@ -3003,6 +3019,10 @@ async def _file_serve(writer, uri, cookie_key_ok, peer_ip, client_close):
                          or "absolute" in str(info)) else 400
         log("file DENY %s %s from %s" % (route, info, peer_ip))
         await _file_fail(writer, status, "Forbidden" if status == 403 else "Bad Request", info)
+        return True
+    if route == "/view":
+        await _file_view(writer, client_close)
+        log("view page -> %s" % peer_ip)
         return True
     if os.path.isdir(rp):
         if route != "/d":
@@ -3272,7 +3292,7 @@ async def serve_once(reader, writer, peer_ip):
         # 必须在下面"剥 k="之前处理：那段正则会命中 path 里的 "&k=" 子串
         # （形如 "&k=..." 的查询片段会被当成密钥参数删掉），所以文件路由的鉴权、
         # 路径校验都在这里一次做完（只读，不触碰任何上游）。
-        if target.split("?")[0] in ("/f", "/d", "/dl"):
+        if target.split("?")[0] in ("/f", "/d", "/dl", "/view"):
             if await _file_serve(writer, target, cookies.get(CAP_COOKIE) == KEY,
                                  peer_ip, client_close):
                 return not client_close
